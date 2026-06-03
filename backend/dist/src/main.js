@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
+const swagger_1 = require("@nestjs/swagger");
 require("dotenv/config");
 const express = __importStar(require("express"));
 const path_1 = require("path");
@@ -51,6 +52,14 @@ async function bootstrap() {
         fs.mkdirSync(uploadsDir, { recursive: true });
     }
     app.use('/uploads', express.static(uploadsDir));
+    const config = new swagger_1.DocumentBuilder()
+        .setTitle('MedClinik API')
+        .setDescription('Documentation de l\'API MedClinik')
+        .setVersion('1.0')
+        .addBearerAuth()
+        .build();
+    const document = swagger_1.SwaggerModule.createDocument(app, config);
+    swagger_1.SwaggerModule.setup('api/docs', app, document);
     const port = process.env.PORT || 3006;
     await app.listen(port, '0.0.0.0');
     console.log(`Application MedClinik lancée sur le port : ${port}`);

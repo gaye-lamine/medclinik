@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useAuth } from '../../../components/AuthContext';
+import { useAuth, API_URL } from '../../../components/AuthContext';
 import { io } from 'socket.io-client';
 import Link from 'next/link';
 
@@ -142,7 +142,7 @@ export default function QueueDisplayPage() {
     fetchQueue();
 
     // Connect WebSockets
-    const socket = io('http://localhost:3006');
+    const socket = io(API_URL);
     socket.on('connect', () => {
       console.log('Display screen connected to WS Gateway');
     });

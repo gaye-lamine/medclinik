@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '../../components/AuthContext';
+import { useAuth, API_URL } from '../../components/AuthContext';
 import { io } from 'socket.io-client';
 import Link from 'next/link';
 
@@ -71,7 +71,7 @@ export default function QueuePage() {
     
     fetchQueue();
 
-    const socket = io('http://localhost:3006');
+    const socket = io(API_URL);
     socket.on('connect', () => {
       console.log('Connected to Queue WebSockets Gateway');
     });

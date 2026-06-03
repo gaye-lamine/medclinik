@@ -44,6 +44,8 @@ const SEED_CREDENTIALS: Record<Role, { email: string; password: string }> = {
   CASHIER: { email: 'cashier@medclinik.com', password: 'cashier123' },
 };
 
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setError(null);
     try {
-      const res = await fetch('http://localhost:3006/auth/login', {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -103,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const credentials = SEED_CREDENTIALS[role];
-      const res = await fetch('http://localhost:3006/auth/login', {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
@@ -127,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const submitOtp = async (code: string): Promise<boolean> => {
     setError(null);
     try {
-      const res = await fetch('http://localhost:3006/auth/verify-2fa', {
+      const res = await fetch(`${API_URL}/auth/verify-2fa`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempToken, code }),
@@ -168,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...(options.headers || {}),
     };
 
-    const res = await fetch(`http://localhost:3006${path}`, {
+    const res = await fetch(`${API_URL}${path}`, {
       ...options,
       headers,
     });

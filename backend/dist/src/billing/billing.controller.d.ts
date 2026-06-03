@@ -1,9 +1,11 @@
 import { BillingService } from './billing.service';
 import { WaveService } from '../wave/wave.service';
+import { SmsService } from '../sms/sms.service';
 export declare class BillingController {
     private billingService;
     private waveService;
-    constructor(billingService: BillingService, waveService: WaveService);
+    private smsService;
+    constructor(billingService: BillingService, waveService: WaveService, smsService: SmsService);
     findAll(): Promise<({
         patient: {
             id: string;
@@ -167,5 +169,11 @@ export declare class BillingController {
     }>;
     createWaveCheckout(id: string): Promise<{
         waveUrl: string;
+    }>;
+    sendWaveSms(id: string, body: {
+        phone: string;
+        waveUrl: string;
+    }): Promise<{
+        success: boolean;
     }>;
 }

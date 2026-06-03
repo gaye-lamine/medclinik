@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '../../components/AuthContext';
+import { useAuth, API_URL } from '../../components/AuthContext';
 
 interface Patient {
   id: string;
@@ -172,7 +172,7 @@ export default function ConsultationPage() {
 
     try {
       setUploading(true);
-      const response = await fetch(`http://localhost:3006/files/patient/${selectedConsult.patientId}`, {
+      const response = await fetch(`${API_URL}/files/patient/${selectedConsult.patientId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -538,7 +538,7 @@ export default function ConsultationPage() {
                             </button>
                           )}
                           <a 
-                            href={`http://localhost:3006${file.url}`} 
+                            href={`${API_URL}${file.url}`} 
                             target="_blank" 
                             rel="noopener noreferrer" 
                             className="btn btn-primary" 
@@ -609,7 +609,7 @@ export default function ConsultationPage() {
             </div>
             <div style={{ textAlign: 'center' }}>
               <img 
-                src={`http://localhost:3006${selectedFile.url}`} 
+                src={`${API_URL}${selectedFile.url}`} 
                 alt={selectedFile.name} 
                 style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid var(--border-color)' }} 
               />

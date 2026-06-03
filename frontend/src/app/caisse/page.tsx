@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useAuth, ROLE_LABELS } from '../../components/AuthContext';
+import { useAuth, ROLE_LABELS, API_URL } from '../../components/AuthContext';
 import io from 'socket.io-client';
 
 interface Patient {
@@ -106,7 +106,7 @@ export default function CaissePage() {
 
   // Socket listener for real-time payment validation (Wave)
   useEffect(() => {
-    const socket = io('http://localhost:3006');
+    const socket = io(API_URL);
     socket.on('queue_updated', () => {
       fetchBills();
     });

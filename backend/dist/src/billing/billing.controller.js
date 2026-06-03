@@ -16,15 +16,18 @@ exports.BillingController = void 0;
 const common_1 = require("@nestjs/common");
 const billing_service_1 = require("./billing.service");
 const wave_service_1 = require("../wave/wave.service");
+const sms_service_1 = require("../sms/sms.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const roles_decorator_1 = require("../auth/roles.decorator");
 const client_1 = require("@prisma/client");
 let BillingController = class BillingController {
     billingService;
     waveService;
-    constructor(billingService, waveService) {
+    smsService;
+    constructor(billingService, waveService, smsService) {
         this.billingService = billingService;
         this.waveService = waveService;
+        this.smsService = smsService;
     }
     async findAll() {
         return this.billingService.findAll();
@@ -55,6 +58,18 @@ let BillingController = class BillingController {
             throw new Error('Impossible de générer le lien Wave');
         }
         return { waveUrl };
+    }
+    async sendWaveSms(id, body) {
+        const bill = await this.billingService.findOne(id);
+        if (!bill) {
+            throw new Error('Facture introuvable');
+        }
+        const message = `Bonjour, veuillez regler votre facture MedClinik de ${bill.patientShare} FCFA en cliquant sur ce lien sécurisé Wave: ${body.waveUrl}`;
+        const success = await this.smsService.send(body.phone, message);
+        if (!success) {
+            throw new Error("L'envoi du SMS a échoué.");
+        }
+        return { success: true };
     }
 };
 exports.BillingController = BillingController;
@@ -115,10 +130,20 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "createWaveCheckout", null);
+__decorate([
+    (0, common_1.Post)('wave/send-sms/:id'),
+    (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], BillingController.prototype, "sendWaveSms", null);
 exports.BillingController = BillingController = __decorate([
     (0, common_1.Controller)('billing'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [billing_service_1.BillingService,
-        wave_service_1.WaveService])
+        wave_service_1.WaveService,
+        sms_service_1.SmsService])
 ], BillingController);
 //# sourceMappingURL=billing.controller.js.map
