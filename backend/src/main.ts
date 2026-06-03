@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import 'dotenv/config';
 import * as express from 'express';
 import { join } from 'path';
@@ -21,6 +22,16 @@ async function bootstrap() {
 
   // Serve static files
   app.use('/uploads', express.static(uploadsDir));
+
+  // Configurer Swagger
+  const config = new DocumentBuilder()
+    .setTitle('MedClinik API')
+    .setDescription('Documentation de l\'API MedClinik')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3006;
   await app.listen(port, '0.0.0.0');
