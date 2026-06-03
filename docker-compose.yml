@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:14
+    container_name: medclinik_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: medclinik_user
+      POSTGRES_PASSWORD: medclinik_password
+      POSTGRES_DB: medclinik_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -1,0 +1,206 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  DOCTOR
+  NURSE
+  CASHIER
+}
+
+enum ConsultationStatus {
+  PENDING
+  PAID
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum BillingStatus {
+  UNPAID
+  PAID
+}
+
+enum QueueStatus {
+  IN_QUEUE
+  CALLING
+  IN_CONSULTATION
+  FINISHED
+}
+
+enum QueueDepartment {
+  VITALS
+  CONSULTATION
+}
+
+model User {
+  id             String         @id @default(uuid())
+  email          String         @unique
+  password       String
+  name           String
+  role           Role
+  phone          String?
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  
+  // Relations
+  vitalsRecorded Vitals[]       @relation("NurseVitals")
+  consultations  Consultation[] @relation("DoctorConsultations")
+  billsHandled   Billing[]      @relation("CashierBills")
+  queueAssigned  QueueEntry[]   @relation("DoctorQueue")
+  appointments   Appointment[]  @relation("DoctorAppointments")
+}
+
+model Patient {
+  id                     String         @id @default(uuid())
+  code                   String         @unique // unique readable clinical code, e.g., PAT-12345
+  firstName              String
+  lastName               String
+  dateOfBirth            DateTime
+  gender                 String
+  phoneNumber            String
+  address                String?
+  mutuelleName           String?
+  insuranceCoverageShare Float          @default(0) // percentage covered by insurance (0-100)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  // Relations
+  vitals                 Vitals[]
+  bills                  Billing[]
+  consultations          Consultation[]
+  queueEntries           QueueEntry[]
+  appointments           Appointment[]
+  files                  PatientFile[]
+}
+
+model Vitals {
+  id                String         @id @default(uuid())
+  patientId         String
+  patient           Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  nurseId           String
+  nurse             User           @relation("NurseVitals", fields: [nurseId], references: [id])
+  temperature       Float?         // in Celcius
+  bloodPressure     String?        // e.g. "120/80"
+  weight            Float?         // in kg
+  heartRate         Int?           // bpm
+  bloodSugar        Float?         // in g/L
+  oxygenSaturation  Int?           // in %
+  comments          String?
+  createdAt         DateTime       @default(now())
+
+  // Relations
+  consultations     Consultation[]
+}
+
+model Billing {
+  id                     String         @id @default(uuid())
+  patientId              String
+  patient                Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  cashierId              String?
+  cashier                User?          @relation("CashierBills", fields: [cashierId], references: [id])
+  amount                 Float          // Total cost
+  status                 BillingStatus  @default(UNPAID)
+  paymentMethod          String?        // CASH, MOBILE_MONEY, CARD
+  mutuelleName           String?
+  insuranceCoverageShare Float          @default(0) // percentage covered by insurance (0-100)
+  patientShare           Float          // Amount to be paid by patient
+  insuranceShare         Float          // Amount to be paid by insurance
+  transactionId          String?        // Tx ID from Mobile Money / Cash
+  insuranceValidated     Boolean        @default(false)
+  insuranceAuthCode      String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  // Relations
+  consultations     Consultation[]
+}
+
+model Consultation {
+  id             String             @id @default(uuid())
+  patientId      String
+  patient        Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId       String
+  doctor         User               @relation("DoctorConsultations", fields: [doctorId], references: [id])
+  vitalsId       String?
+  vitals         Vitals?            @relation(fields: [vitalsId], references: [id])
+  billingId      String?
+  billing        Billing?           @relation(fields: [billingId], references: [id])
+  diagnosis      String?
+  notes          String?
+  specialty      String             @default("General") // General, Pediatrics, Gynecology, etc.
+  status         ConsultationStatus @default(PENDING)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  // Relations
+  prescriptions  Prescription[]
+  files          PatientFile[]
+}
+
+model Prescription {
+  id             String       @id @default(uuid())
+  consultationId String       @unique
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  uniqueCode     String       @unique // e.g. RX-12345-ABC
+  medicines      Json         // JSON array of { name: string, dosage: string, duration: string }
+  instructions   String?
+  isDelivered    Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}
+
+model StockItem {
+  id                String   @id @default(uuid())
+  name              String   @unique
+  quantity          Float
+  unit              String   // e.g. "boxes", "bottles", "syringes"
+  criticalThreshold Float    // Quantity below which triggers alert
+  category          String   // e.g. "Consumable", "Medicine", "Equipment"
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model QueueEntry {
+  id                String          @id @default(uuid())
+  patientId         String
+  patient           Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  status            QueueStatus     @default(IN_QUEUE)
+  priority          String          @default("NORMAL") // NORMAL, URGENT, EMERGENCY
+  department        QueueDepartment @default(VITALS)
+  assignedDoctorId  String?
+  assignedDoctor    User?           @relation("DoctorQueue", fields: [assignedDoctorId], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model Appointment {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId  String
+  doctor    User     @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  dateTime  DateTime
+  status    String   // SCHEDULED, COMPLETED, CANCELLED, NO_SHOW
+  specialty String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PatientFile {
+  id             String        @id @default(uuid())
+  patientId      String
+  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  consultationId String?
+  consultation   Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  name           String
+  url            String
+  type           String        // e.g. DICOM, JPEG, PDF
+  size           Int
+  uploadedAt     DateTime      @default(now())
+}
