@@ -91,6 +91,9 @@ sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER
     docker compose down --remove-orphans || true
     docker compose up -d --build
     
+    echo "⏳ Attente du démarrage de la base de données (10s)..."
+    sleep 10
+    
     # Exécuter les migrations Prisma automatiquement
     echo "🗄️ Application des migrations Prisma dans la base de données..."
     docker compose exec -T medclinik-backend npx prisma migrate deploy

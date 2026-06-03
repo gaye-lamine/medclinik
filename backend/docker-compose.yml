@@ -21,3 +21,22 @@ services:
       - ./uploads:/app/uploads
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=postgresql://medclinik_user:medclinik_password@medclinik-db:5432/medclinik_db?schema=public
+    depends_on:
+      - medclinik-db
+
+  medclinik-db:
+    image: postgres:14
+    container_name: medclinik-db
+    restart: always
+    environment:
+      POSTGRES_USER: medclinik_user
+      POSTGRES_PASSWORD: medclinik_password
+      POSTGRES_DB: medclinik_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - medclinik_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  medclinik_postgres_data:
