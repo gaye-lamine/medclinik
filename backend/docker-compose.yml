@@ -7,6 +7,12 @@ services:
       dockerfile: Dockerfile
     container_name: medclinik-backend
     restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.medclinik.entrypoints=websecure"
+      - "traefik.http.routers.medclinik.rule=Host(`medclinik.backnd-api.cloud`)"
+      - "traefik.http.routers.medclinik.tls.certresolver=letsencrypt"
+      - "traefik.http.services.medclinik.loadbalancer.server.port=3006"
     ports:
       - "3010:3006"
     env_file:
