@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Param, Req, Query, UseGuards } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { WaveService } from '../wave/wave.service';
+import { SmsService } from '../sms/sms.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { Role } from '@prisma/client';
@@ -11,6 +12,7 @@ export class BillingController {
   constructor(
     private billingService: BillingService,
     private waveService: WaveService,
+    private smsService: SmsService,
   ) {}
 
   @Get()
@@ -61,5 +63,20 @@ export class BillingController {
       throw new Error('Impossible de générer le lien Wave');
     }
     return { waveUrl };
+  }
+
+  @Post('wave/send-sms/:id')
+  @Roles(Role.CASHIER, Role.ADMIN)
+  async sendWaveSms(@Param('id') id: string, @Body() body: { phone: string; waveUrl: string }) {
+    const bill = await this.billingService.findOne(id);
+    if (!bill) {
+      throw new Error('Facture introuvable');
+    }
+    const message = `Bonjour, veuillez regler votre facture MedClinik de ${bill.patientShare} FCFA en cliquant sur ce lien sécurisé Wave: ${body.waveUrl}`;
+    const success = await this.smsService.send(body.phone, message);
+    if (!success) {
+      throw new Error("L'envoi du SMS a échoué.");
+    }
+    return { success: true };
   }
 }

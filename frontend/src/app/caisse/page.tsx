@@ -46,6 +46,7 @@ export default function CaissePage() {
   const [momoPhone, setMomoPhone] = useState('');
   const [waveUrl, setWaveUrl] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState('');
+  const [isSendingSms, setIsSendingSms] = useState(false);
 
   // Insurance validation loading state
   const [validatingId, setValidatingId] = useState<string | null>(null);
@@ -177,6 +178,10 @@ export default function CaissePage() {
           method: 'POST',
         });
         setWaveUrl(response.waveUrl);
+        // Si le patient a un numéro de téléphone enregistré, l'utiliser par défaut
+        if (!momoPhone && selectedBill.patient?.phoneNumber) {
+          setMomoPhone(selectedBill.patient.phoneNumber);
+        }
         return; // Wait for socket to confirm payment
       }
 
@@ -191,6 +196,7 @@ export default function CaissePage() {
         }),
       });
 
+      setBills(prev => prev.map(b => b.id === selectedBill.id ? paidBill : b));
       setSelectedBill(null);
       setTransactionId('');
       setMomoPhone('');
@@ -200,6 +206,38 @@ export default function CaissePage() {
     } catch (e: any) {
       setError(e.message || 'Erreur lors du règlement de la facture');
     }
+  };
+
+  const handleSendWaveSms = async () => {
+    if (!selectedBill || !waveUrl || !momoPhone) {
+      alert("Veuillez saisir un numéro de téléphone pour envoyer le SMS.");
+      return;
+    }
+    
+    try {
+      setIsSendingSms(true);
+      await apiFetch(`/billing/wave/send-sms/${selectedBill.id}`, {
+        method: 'POST',
+        body: JSON.stringify({ phone: momoPhone, waveUrl }),
+      });
+      alert('SMS envoyé avec succès au patient !');
+    } catch (err: any) {
+      alert(err.message || "Erreur lors de l'envoi du SMS.");
+    } finally {
+      setIsSendingSms(false);
+    }
+  };
+
+  const handleSendWhatsApp = () => {
+    if (!momoPhone || !waveUrl || !selectedBill) {
+       alert("Veuillez saisir un numéro de téléphone pour envoyer le lien WhatsApp.");
+       return;
+    }
+    const cleanPhone = momoPhone.replace('+', '').replace(/\s/g, '');
+    const defaultPrefix = cleanPhone.startsWith('221') ? '' : '221';
+    const message = `Bonjour, veuillez régler votre facture MedClinik de ${selectedBill.patientShare} FCFA en cliquant sur ce lien sécurisé Wave : ${waveUrl}`;
+    const waUrl = `https://wa.me/${defaultPrefix}${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank');
   };
 
   const formatFCFA = (amount: number) => {
@@ -451,6 +489,26 @@ export default function CaissePage() {
                 >
                   Ouvrir le portail de paiement Wave
                 </a>
+
+                {momoPhone && (
+                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                    <button 
+                      onClick={handleSendWaveSms}
+                      disabled={isSendingSms}
+                      className="btn"
+                      style={{ flex: 1, backgroundColor: '#FF7900', color: 'white', border: 'none' }}
+                    >
+                      {isSendingSms ? 'Envoi en cours...' : 'Envoyer lien par SMS'}
+                    </button>
+                    <button 
+                      onClick={handleSendWhatsApp}
+                      className="btn"
+                      style={{ flex: 1, backgroundColor: '#25D366', color: 'white', border: 'none' }}
+                    >
+                      Envoyer par WhatsApp
+                    </button>
+                  </div>
+                )}
 
                 <button 
                   onClick={() => setWaveUrl(null)} 
