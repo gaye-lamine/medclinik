@@ -68,7 +68,10 @@ sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER
     # Initialiser git si nécessaire ou simplement pull
     if [ ! -d ".git" ]; then
         echo "📥 Initialisation du projet sur le serveur..."
-        git clone https://github.com/gaye-lamine/medclinik.git .
+        git init
+        git remote add origin https://github.com/gaye-lamine/medclinik.git
+        git fetch
+        git checkout -t origin/main || git pull origin main
     else
         echo "📥 Récupération des dernières modifications..."
         git stash || true
