@@ -41,8 +41,9 @@ const path_1 = require("path");
 const fs = __importStar(require("fs"));
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule, { rawBody: true });
+    const corsOrigin = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*';
     app.enableCors({
-        origin: ['http://localhost:3005', 'http://127.0.0.1:3005'],
+        origin: corsOrigin,
         credentials: true,
     });
     const uploadsDir = (0, path_1.join)(process.cwd(), 'uploads');
