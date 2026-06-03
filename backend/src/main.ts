@@ -23,7 +23,7 @@ async function bootstrap() {
   app.use('/uploads', express.static(uploadsDir));
 
   const port = process.env.PORT || 3006;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`Application MedClinik lancée sur le port : ${port}`);
 }
 bootstrap();
