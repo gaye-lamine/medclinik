@@ -1,6 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { WaveController } from './wave.controller';
-import { WaveService } from './wave.service';
+import { WaveController } from './wave.controller.js';
+import { WaveService } from './wave.service.js';
 import { BillingModule } from '../billing/billing.module.js';
 
 @Module({

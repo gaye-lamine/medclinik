@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bill } from '../../types/billing';
 import { BillingService } from '../../services/billing.service';
 import { useToast } from '../ToastContext';
@@ -26,6 +26,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isSendingSms, setIsSendingSms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pollCount, setPollCount] = useState(0);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Sync phone number if bill changes
   useEffect(() => {
@@ -34,13 +36,50 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   }, [bill]);
 
-  // Check if current wave payment was processed via Webhook (real-time status update)
+  // Confirmation temps réel via WebSocket (webhook reçu → bill.status change)
   useEffect(() => {
     if (waveUrl && bill.status === 'PAID') {
-      toast.success('Le paiement Wave a été confirmé avec succès par le patient !');
+      stopPolling();
+      toast.success('Paiement Wave confirmé ! La facture a été réglée.');
       onPaymentSuccess(bill);
     }
-  }, [bill.status, waveUrl, bill, onPaymentSuccess, toast]);
+  }, [bill.status, waveUrl]);
+
+  // Polling fallback : vérifie le statut Wave toutes les 5s
+  // si le WebSocket n'a pas reçu l'événement (réseau instable, webhook manqué)
+  useEffect(() => {
+    if (!waveUrl) {
+      stopPolling();
+      return;
+    }
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const result = await billingService.checkWaveStatus(bill.id);
+        setPollCount((c) => c + 1);
+
+        if (result.billStatus === 'PAID' || result.status === 'succeeded') {
+          stopPolling();
+          toast.success('Paiement Wave confirmé via vérification automatique !');
+          // Recharger la facture depuis le serveur pour avoir le statut à jour
+          const updatedBills = await billingService.getBills();
+          const updatedBill = updatedBills.find((b: Bill) => b.id === bill.id);
+          if (updatedBill) onPaymentSuccess(updatedBill);
+        }
+      } catch {
+        // Silencieux — le polling continue
+      }
+    }, 5000); // Vérification toutes les 5 secondes
+
+    return () => stopPolling();
+  }, [waveUrl]);
+
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,10 +159,26 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <div className="wave-header">
               <span className="wave-icon">🌊</span>
               <h4>En attente du paiement Wave</h4>
+              <div className="wave-status-badge">
+                <span className="pulse-dot"></span>
+                Vérification en cours{pollCount > 0 ? ` (${pollCount})` : ''}...
+              </div>
               <p className="wave-instruction">
-                Le patient doit cliquer sur le lien ci-dessous ou le scanner pour valider la transaction.
-                Cette fenêtre se fermera automatiquement dès réception du paiement !
+                Le patient scanne ce QR code ou reçoit le lien par SMS / WhatsApp.
+                Cette fenêtre se ferme automatiquement dès réception du paiement.
               </p>
+            </div>
+
+            {/* QR Code généré via Google Charts API (aucune dépendance NPM) */}
+            <div className="qr-container">
+              <img
+                src={`https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(waveUrl)}&choe=UTF-8`}
+                alt="QR Code Wave"
+                className="wave-qr-code"
+                width={200}
+                height={200}
+              />
+              <p className="qr-caption">Scanner avec l&apos;app Wave</p>
             </div>
 
             <a
@@ -132,7 +187,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               rel="noopener noreferrer"
               className="btn btn-primary wave-pay-btn"
             >
-              Ouvrir le portail de paiement Wave
+              Ouvrir le portail Wave ↗
             </a>
 
             {momoPhone && (
@@ -142,19 +197,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   disabled={isSendingSms}
                   className="btn sms-btn"
                 >
-                  {isSendingSms ? 'Envoi en cours...' : 'Envoyer lien par SMS'}
+                  {isSendingSms ? 'Envoi...' : '📲 Envoyer par SMS'}
                 </button>
                 <button
                   onClick={handleSendWhatsApp}
                   className="btn whatsapp-btn"
                 >
-                  Envoyer par WhatsApp
+                  💬 Envoyer par WhatsApp
                 </button>
               </div>
             )}
 
             <button
-              onClick={() => setWaveUrl(null)}
+              onClick={() => { setWaveUrl(null); stopPolling(); }}
               className="btn btn-secondary cancel-wave-btn"
             >
               Annuler la session Wave
@@ -289,8 +344,52 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           display: inline-block;
           width: 100%;
           margin-bottom: 1rem;
+          padding: 0.85rem;
+          font-size: 1rem;
+          text-align: center;
+        }
+        .qr-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: 1.25rem;
           padding: 1rem;
-          font-size: 1.1rem;
+          background: rgba(255,255,255,0.05);
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+        .wave-qr-code {
+          border-radius: 8px;
+          border: 4px solid white;
+        }
+        .qr-caption {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          margin-top: 0.5rem;
+        }
+        .wave-status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          background: rgba(0, 168, 255, 0.12);
+          border: 1px solid rgba(0, 168, 255, 0.3);
+          color: #00a8ff;
+          font-size: 0.8rem;
+          padding: 0.25rem 0.75rem;
+          border-radius: 999px;
+          margin: 0.5rem auto 0.75rem;
+        }
+        .pulse-dot {
+          width: 8px;
+          height: 8px;
+          background: #00a8ff;
+          border-radius: 50%;
+          animation: pulse-wave 1.4s ease-in-out infinite;
+          flex-shrink: 0;
+        }
+        @keyframes pulse-wave {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.7); }
         }
         .share-buttons {
           display: flex;

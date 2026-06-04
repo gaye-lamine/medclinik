@@ -93,15 +93,15 @@ export class BillingController {
   @ApiOperation({ summary: 'Créer un lien de paiement Wave Mobile Money' })
   @ApiResponse({ status: 200, description: 'Session Wave initialisée avec succès' })
   @ApiResponse({ status: 404, description: 'Facture introuvable' })
+  @ApiResponse({ status: 400, description: 'Données invalides pour Wave' })
+  @ApiResponse({ status: 503, description: 'Service Wave indisponible' })
   async createWaveCheckout(@Param('id') id: string) {
     const bill = await this.billingService.findOne(id);
     if (!bill) {
       throw new NotFoundException('Facture introuvable');
     }
+    // WaveService lève BadRequestException / InternalServerErrorException si erreur
     const waveUrl = await this.waveService.createCheckoutSession(bill.patientShare, id);
-    if (!waveUrl) {
-      throw new BadRequestException('Impossible de générer le lien de paiement Wave');
-    }
     return { waveUrl };
   }
 
