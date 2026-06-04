@@ -62,12 +62,12 @@ let WaveService = WaveService_1 = class WaveService {
         if (!response.ok) {
             const errorBody = await response.json().catch(() => ({}));
             const waveMessage = errorBody?.message || errorBody?.error || `HTTP ${response.status}`;
-            this.logger.error(`Erreur API Wave (${response.status}) : ${waveMessage}`, errorBody);
+            this.logger.error(`Erreur API Wave (${response.status}) : ${waveMessage} — body complet : ${JSON.stringify(errorBody)}`);
             if (response.status === 400) {
                 throw new common_1.BadRequestException(`Données de paiement invalides pour Wave : ${waveMessage}`);
             }
             if (response.status === 401 || response.status === 403) {
-                throw new common_1.InternalServerErrorException('Clé API Wave invalide ou expirée. Contactez l\'administrateur.');
+                throw new common_1.InternalServerErrorException(`Clé API Wave invalide ou expirée (HTTP ${response.status}) : ${waveMessage}`);
             }
             throw new common_1.InternalServerErrorException(`Erreur Wave (${response.status}) : ${waveMessage}`);
         }
