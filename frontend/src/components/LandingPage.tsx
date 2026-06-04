@@ -503,11 +503,17 @@ const s: Record<string, React.CSSProperties> = {
     overflowX: 'hidden',
   },
 
-  // NAV
   nav: {
-    position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '0 40px', height: 56,
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 200,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '0 40px',
+    height: 56,
     transition: 'background 0.4s, backdrop-filter 0.4s, border-color 0.4s',
     borderBottom: '1px solid transparent',
   },
@@ -515,7 +521,7 @@ const s: Record<string, React.CSSProperties> = {
     background: 'rgba(6,8,15,0.78)',
     backdropFilter: 'saturate(180%) blur(20px)',
     WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottom: '1px solid rgba(255,255,255,0.06)',
   },
   navBrand: {
     fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#fff', cursor: 'pointer',
