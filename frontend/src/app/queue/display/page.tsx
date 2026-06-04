@@ -254,7 +254,7 @@ export default function QueueDisplayPage() {
                   key={entry.id} 
                   style={{
                     ...styles.callRow,
-                    borderColor: entry.status === 'CALLING' ? 'var(--primary-color)' : 'var(--border-color)',
+                    border: entry.status === 'CALLING' ? '1px solid var(--primary-color)' : '1px solid var(--border-color)',
                     boxShadow: entry.status === 'CALLING' ? 'var(--neon-glow)' : 'none'
                   }}
                   className={entry.status === 'CALLING' ? 'pulse-calling-border' : ''}

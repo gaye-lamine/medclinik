@@ -398,7 +398,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   queueCardActive: {
     background: 'var(--primary-glow)',
-    borderColor: 'var(--primary-color)',
+    border: '1px solid var(--primary-color)',
   },
   selectedHeader: {
     display: 'flex',
