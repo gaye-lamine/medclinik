@@ -1,48 +1,51 @@
-# Base image
+# ─── Stage 1 : Builder (compile TypeScript) ────────────────────────────────
 FROM node:22-alpine AS builder
 
-# Create app directory
 WORKDIR /app
 
-# Install dependencies
+# Configurer npm pour gérer les timeouts réseau sur VPS (retry 3x, timeout 5 min)
+RUN npm config set fetch-retry-mintimeout 20000 \
+ && npm config set fetch-retry-maxtimeout 120000 \
+ && npm config set fetch-retries 3 \
+ && npm config set fetch-timeout 300000
+
+# Installer toutes les dépendances (y compris devDependencies pour compiler)
 COPY package*.json ./
 RUN npm ci
 
-# Copy Prisma schema and generate client
+# Générer le client Prisma
 COPY prisma ./prisma
 RUN npx prisma generate
 
-# Copy application code
+# Copier le code source et compiler NestJS
 COPY . .
-
-# Build the NestJS application
 RUN npm run build
 
-# Production image
+# ─── Stage 2 : Production (image légère) ──────────────────────────────────
 FROM node:22-alpine AS production
 
 WORKDIR /app
 
-# Copy package.json for production install
-COPY package*.json ./
+# Configurer npm pour les timeouts réseau
+RUN npm config set fetch-retry-mintimeout 20000 \
+ && npm config set fetch-retry-maxtimeout 120000 \
+ && npm config set fetch-retries 3 \
+ && npm config set fetch-timeout 300000
 
-# Install only production dependencies
+# Installer uniquement les dépendances de production
+COPY package*.json ./
 RUN npm ci --omit=dev
 
-# Copy Prisma schema and generated client
+# Récupérer le client Prisma et le build depuis le stage builder
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
-# Copy built application
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
-# Create uploads directory
+# Créer le répertoire d'uploads avec les bons droits
 RUN mkdir -p uploads && chown -R node:node uploads
 
-# Expose port
 EXPOSE 3006
 
-# Start the application using production build
 CMD ["node", "dist/src/main"]
