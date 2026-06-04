@@ -46,12 +46,7 @@ export const LandingPage: React.FC = () => {
         <div style={styles.heroContainer}>
           {/* Hero Left Content */}
           <div style={styles.heroContent} className="animate-slide-up">
-            <div style={styles.badgeWrapper}>
-              <span className="badge badge-paid" style={styles.heroBadge}>
-                Nouveau : Wave Pay &amp; SMS OTP 2FA Intégrés
-              </span>
-            </div>
-            
+
             <h1 style={styles.heroTitle}>
               La gestion médicale<br />
               <span style={styles.titleGradient}>réinventée pour l'Afrique</span>
