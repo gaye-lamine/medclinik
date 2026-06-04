@@ -48,6 +48,7 @@ var WaveController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WaveController = void 0;
 const common_1 = require("@nestjs/common");
+const throttler_1 = require("@nestjs/throttler");
 const crypto = __importStar(require("crypto"));
 const billing_service_js_1 = require("../billing/billing.service.js");
 const wave_service_js_1 = require("./wave.service.js");
@@ -206,6 +207,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], WaveController.prototype, "checkStatus", null);
 __decorate([
+    (0, throttler_1.SkipThrottle)(),
     (0, common_1.Post)('webhook'),
     (0, swagger_1.ApiOperation)({ summary: 'Webhook Wave CI — réception des événements de paiement' }),
     __param(0, (0, common_1.Req)()),

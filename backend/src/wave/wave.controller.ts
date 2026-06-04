@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Param, Req, Res, Headers, Logger, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import * as crypto from 'crypto';
@@ -56,6 +57,7 @@ export class WaveController {
   // ────────────────────────────────────────────────────────────────────────
   // Webhook Wave : réception des événements de paiement en temps réel
   // ────────────────────────────────────────────────────────────────────────
+  @SkipThrottle() // Wave peut envoyer plusieurs requêtes rapides (health checks, retries)
   @Post('webhook')
   @ApiOperation({ summary: 'Webhook Wave CI — réception des événements de paiement' })
   async handleWebhook(
