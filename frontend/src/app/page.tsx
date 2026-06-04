@@ -19,7 +19,7 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
-  const { user, apiFetch, token } = useAuth();
+  const { user, apiFetch, token, logout } = useAuth();
 
   // Si l'utilisateur n'est pas connecté, afficher la Landing Page publique
   if (!user) {
@@ -67,7 +67,10 @@ export default function Dashboard() {
       <div className="dashboard-error-card glass-card">
         <h3 style={{ color: 'var(--danger)' }}>Erreur d'accès</h3>
         <p style={{ margin: '1rem 0', color: 'var(--text-muted)' }}>{error || 'Données indisponibles.'}</p>
-        <button onClick={fetchDashboardData} className="btn btn-primary">Réessayer</button>
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+          <button onClick={fetchDashboardData} className="btn btn-primary">Réessayer</button>
+          <button onClick={logout} className="btn btn-secondary">Déconnexion</button>
+        </div>
       </div>
     );
   }
