@@ -88,6 +88,7 @@ let BillingService = class BillingService {
                 paymentMethod,
                 transactionId,
             },
+            include: { patient: true, cashier: { select: { name: true } } },
         });
         await this.prisma.consultation.updateMany({
             where: { billingId: id },

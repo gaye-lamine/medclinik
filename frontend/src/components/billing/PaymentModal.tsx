@@ -139,7 +139,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         <h3 className="modal-title">Encaisser un Règlement</h3>
 
         <div className="checkout-summary">
-          <p>Patient : <strong>{bill.patient.firstName} {bill.patient.lastName} ({bill.patient.code})</strong></p>
+          <p>Patient : <strong>{bill.patient?.firstName} {bill.patient?.lastName} ({bill.patient?.code})</strong></p>
           <p>Reste à payer : <strong className="patient-share">{formatFCFA(bill.patientShare)}</strong></p>
           {bill.mutuelleName && (
             <p className="insurance-info">

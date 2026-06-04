@@ -284,8 +284,8 @@ export const generateReceiptPDF = async (
   doc.text(`FACTURE N°: ${bill.id.substring(0, 8).toUpperCase()}`, 10, 49);
   doc.text(`DATE: ${new Date(bill.createdAt).toLocaleDateString('fr-FR')} ${new Date(bill.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`, 10, 54);
   doc.text(`CAISSIER: ${cashierName}`, 10, 59);
-  doc.text(`PATIENT: ${bill.patient.firstName} ${bill.patient.lastName}`, 10, 64);
-  doc.text(`CODE: ${bill.patient.code}`, 10, 69);
+  doc.text(`PATIENT: ${bill.patient?.firstName || ''} ${bill.patient?.lastName || ''}`, 10, 64);
+  doc.text(`CODE: ${bill.patient?.code || ''}`, 10, 69);
 
   doc.text('--------------------------------', 40, 73, { align: 'center' });
 
@@ -334,7 +334,7 @@ export const generateReceiptPDF = async (
   // Real QR Code integration
   try {
     const method = bill.paymentMethod === 'WAVE' || bill.paymentMethod === 'MOBILE_MONEY_WAVE' ? 'Wave' : 'Especes';
-    const qrText = `MEDCLINIK SECURE RECEIPT\nID: ${bill.id}\nPatient: ${bill.patient.firstName} ${bill.patient.lastName}\nNet: ${bill.patientShare} FCFA\nMode: ${method}\nDate: ${new Date(bill.createdAt).toLocaleDateString('fr-FR')}`;
+    const qrText = `MEDCLINIK SECURE RECEIPT\nID: ${bill.id}\nPatient: ${bill.patient?.firstName || ''} ${bill.patient?.lastName || ''}\nNet: ${bill.patientShare} FCFA\nMode: ${method}\nDate: ${new Date(bill.createdAt).toLocaleDateString('fr-FR')}`;
     const qrDataUrl = await QRCode.toDataURL(qrText, {
       margin: 1,
       width: 150,

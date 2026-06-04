@@ -43,8 +43,8 @@ export const BillsTable: React.FC<BillsTableProps> = ({
             {bills.map((bill) => (
               <tr key={bill.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <td style={{ padding: '1rem', fontSize: '0.95rem' }}>
-                  <strong>{bill.patient.firstName} {bill.patient.lastName}</strong> <br />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{bill.patient.code}</span>
+                  <strong>{bill.patient?.firstName} {bill.patient?.lastName}</strong> <br />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{bill.patient?.code}</span>
                 </td>
                 <td style={{ padding: '1rem', fontSize: '0.95rem' }}>
                   {new Date(bill.createdAt).toLocaleDateString('fr-FR')}

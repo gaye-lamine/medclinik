@@ -87,6 +87,7 @@ export class BillingService {
         paymentMethod,
         transactionId,
       },
+      include: { patient: true, cashier: { select: { name: true } } },
     });
 
     // Automatically transition matching consultations to PAID state, unlocking them

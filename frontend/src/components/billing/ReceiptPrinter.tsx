@@ -60,7 +60,7 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
             </div>
             <div>
               <span className="meta-label">PATIENT :</span>
-              <span className="meta-val">{bill.patient.firstName} {bill.patient.lastName} ({bill.patient.code})</span>
+              <span className="meta-val">{bill.patient?.firstName} {bill.patient?.lastName} ({bill.patient?.code})</span>
             </div>
           </div>
 
@@ -77,7 +77,7 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
             <tbody>
               <tr>
                 <td style={{ padding: '0.6rem 0', fontWeight: 'bold' }}>
-                  Consultation médicale {bill.patient.mutuelleName ? `(${bill.patient.mutuelleName})` : ''}
+                  Consultation médicale {bill.patient?.mutuelleName ? `(${bill.patient.mutuelleName})` : ''}
                 </td>
                 <td style={{ textAlign: 'right', padding: '0.6rem 0', fontWeight: 'bold' }}>
                   {formatFCFA(bill.amount)}
