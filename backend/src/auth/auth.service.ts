@@ -1,10 +1,11 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, UnauthorizedException, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { SmsService } from '../sms/sms.service';
+import { SmsService } from '../sms/sms.service.js';
+import { SmsRateLimiterService } from '../sms/sms-rate-limiter.service.js';
 import { createHash } from 'crypto';
-import { RegisterDto } from './dto/register.dto';
+import { RegisterDto } from './dto/register.dto.js';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +15,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private smsService: SmsService,
+    private smsRateLimiter: SmsRateLimiterService,
   ) {}
 
   async validateUser(email: string, pass: string): Promise<any> {
@@ -32,7 +34,15 @@ export class AuthService {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
-  async login(user: any) {
+  async login(user: any, callerIp = '0.0.0.0') {
+    // ── Guard : vérifier les quotas SMS avant de générer/envoyer l'OTP ──────
+    if (user.phone) {
+      const rateLimitCheck = this.smsRateLimiter.check(callerIp, user.phone);
+      if (!rateLimitCheck.allowed) {
+        throw new HttpException(rateLimitCheck.reason ?? 'Trop de tentatives. Réessayez plus tard.', HttpStatus.TOO_MANY_REQUESTS);
+      }
+    }
+
     // Generate a random 6-digit OTP code
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 

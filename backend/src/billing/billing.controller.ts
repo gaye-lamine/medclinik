@@ -1,16 +1,27 @@
-import { Controller, Get, Post, Body, Param, Req, Query, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
-import { BillingService } from './billing.service';
-import { WaveService } from '../wave/wave.service';
-import { SmsService } from '../sms/sms.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { Roles } from '../auth/roles.decorator';
+import { Controller, Get, Post, Body, Param, Req, Query, UseGuards, NotFoundException, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
+import type { Request } from 'express';
+import { BillingService } from './billing.service.js';
+import { WaveService } from '../wave/wave.service.js';
+import { SmsService } from '../sms/sms.service.js';
+import { SmsRateLimiterService } from '../sms/sms-rate-limiter.service.js';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { Roles } from '../auth/roles.decorator.js';
 import { Role } from '@prisma/client';
-import { CalculateShareDto } from './dto/calculate-share.dto';
-import { CreateBillingDto } from './dto/create-billing.dto';
-import { PayBillingDto } from './dto/pay-billing.dto';
-import { ValidateInsuranceDto } from './dto/validate-insurance.dto';
-import { SendWaveSmsDto } from './dto/send-wave-sms.dto';
+import { CalculateShareDto } from './dto/calculate-share.dto.js';
+import { CreateBillingDto } from './dto/create-billing.dto.js';
+import { PayBillingDto } from './dto/pay-billing.dto.js';
+import { ValidateInsuranceDto } from './dto/validate-insurance.dto.js';
+import { SendWaveSmsDto } from './dto/send-wave-sms.dto.js';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+
+/** Extrait l'IP réelle du client (compatible Traefik X-Forwarded-For) */
+function getClientIp(req: Request): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    return (Array.isArray(forwarded) ? forwarded[0] : forwarded).split(',')[0].trim();
+  }
+  return req.ip || req.socket?.remoteAddress || '0.0.0.0';
+}
 
 @ApiTags('Billing')
 @ApiBearerAuth()
@@ -21,6 +32,7 @@ export class BillingController {
     private billingService: BillingService,
     private waveService: WaveService,
     private smsService: SmsService,
+    private smsRateLimiter: SmsRateLimiterService,
   ) {}
 
   @Get()
@@ -97,11 +109,19 @@ export class BillingController {
   @Roles(Role.CASHIER, Role.ADMIN)
   @ApiOperation({ summary: 'Envoyer le lien de paiement Wave par SMS au patient' })
   @ApiResponse({ status: 200, description: 'SMS envoyé avec succès' })
-  async sendWaveSms(@Param('id') id: string, @Body() body: SendWaveSmsDto) {
+  @ApiResponse({ status: 429, description: 'Quota SMS dépassé — réessayez dans quelques minutes' })
+  async sendWaveSms(@Param('id') id: string, @Body() body: SendWaveSmsDto, @Req() req: Request) {
     const bill = await this.billingService.findOne(id);
     if (!bill) {
       throw new NotFoundException('Facture introuvable');
     }
+
+    // ── Guard : rate limit SMS avant tout envoi ────────────────────────
+    const rateLimitCheck = this.smsRateLimiter.check(getClientIp(req), body.phone);
+    if (!rateLimitCheck.allowed) {
+      throw new HttpException(rateLimitCheck.reason ?? 'Trop de tentatives SMS. Réessayez plus tard.', HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     const message = `Bonjour, veuillez regler votre facture MedClinik de ${bill.patientShare} FCFA en cliquant sur ce lien sécurisé Wave: ${body.waveUrl}`;
     const success = await this.smsService.send(body.phone, message);
     if (!success) {
