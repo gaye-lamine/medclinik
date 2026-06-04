@@ -4,6 +4,55 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type Role = 'ADMIN' | 'DOCTOR' | 'NURSE' | 'CASHIER';
 
+// ─── Utilitaire de traduction des erreurs réseau ───────────────────────────
+/**
+ * Traduit les erreurs brutes (TypeError réseau, erreurs HTTP) en messages
+ * lisibles en français. Empêche l'affichage de "Failed to fetch" ou de
+ * messages d'erreur techniques exposés à l'utilisateur final.
+ */
+function parseApiError(e: unknown, fallback = "Une erreur inattendue s'est produite."): string {
+  // 1. Erreur réseau ou CORS (TypeError lancé par fetch)
+  if (e instanceof TypeError) {
+    if (e.message.toLowerCase().includes('failed to fetch') || e.message.toLowerCase().includes('networkerror')) {
+      return 'Impossible de joindre le serveur. Veuillez vérifier votre connexion ou réessayer plus tard.';
+    }
+    if (e.message.toLowerCase().includes('cors')) {
+      return 'Accès refusé par le serveur (politique CORS). Contactez votre administrateur.';
+    }
+    return `Erreur réseau : ${e.message}`;
+  }
+  // 2. Erreur HTTP structurée (objet avec message)
+  if (e && typeof e === 'object') {
+    const err = e as Record<string, any>;
+    const msg = err.message;
+    if (typeof msg === 'string' && msg.length > 0 && !msg.toLowerCase().includes('failed to fetch')) {
+      return msg;
+    }
+  }
+  // 3. String brute
+  if (typeof e === 'string' && e.length > 0) {
+    return e;
+  }
+  return fallback;
+}
+
+// ─── Traduction des codes HTTP standard ──────────────────────────────────────
+function httpStatusToMessage(status: number): string {
+  const messages: Record<number, string> = {
+    400: 'La requête est invalide. Vérifiez les données saisies.',
+    401: 'Session expirée ou non authentifié. Veuillez vous reconnecter.',
+    403: 'Vous n\'avez pas les droits nécessaires pour cette action.',
+    404: 'La ressource demandée est introuvable.',
+    409: 'Un conflit de données a été détecté (doublon possible).',
+    422: 'Les données envoyées ne respectent pas les règles de validation.',
+    429: 'Trop de requêtes. Veuillez patienter quelques secondes.',
+    500: 'Erreur interne du serveur. Notre équipe a été notifiée.',
+    502: 'Le serveur est temporairement indisponible. Réessayez plus tard.',
+    503: 'Service en maintenance. Veuillez réessayer dans quelques minutes.',
+  };
+  return messages[status] ?? `Erreur inattendue (code ${status}). Veuillez réessayer.`;
+}
+
 export const ROLE_LABELS: Record<Role | string, string> = {
   ADMIN: 'Administrateur',
   DOCTOR: 'Médecin',
@@ -79,10 +128,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await res.json();
       setTempToken(data.tempToken);
       setPhoneDigits(data.phone);
-      setShowOtpModal(true); // Open 2FA
-    } catch (e: any) {
-      setError(e.message || 'Erreur lors de la connexion');
-      throw e;
+      setShowOtpModal(true);
+    } catch (e: unknown) {
+      const message = parseApiError(e, 'Erreur lors de la connexion.');
+      setError(message);
+      throw new Error(message);
     }
   };
 
@@ -113,8 +163,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setTempToken(data.tempToken);
       setPhoneDigits(data.phone);
       setShowOtpModal(true); // Open 2FA Screen
-    } catch (e: any) {
-      setError(e.message || 'Erreur lors du changement de rôle');
+    } catch (e: unknown) {
+      setError(parseApiError(e, 'Erreur lors du changement de rôle.'));
     }
   };
 
@@ -142,8 +192,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPendingRole(null);
       setTempToken(null);
       return true;
-    } catch (e: any) {
-      setError(e.message || 'Code OTP incorrect');
+    } catch (e: unknown) {
+      setError(parseApiError(e, 'Code OTP incorrect ou expiré.'));
       return false;
     }
   };
@@ -162,15 +212,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...(options.headers || {}),
     };
 
-    const res = await fetch(`${API_URL}${path}`, {
-      ...options,
-      headers,
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API_URL}${path}`, { ...options, headers });
+    } catch (networkError: unknown) {
+      // Erreur réseau (serveur hors-ligne, CORS preflight bloqué, etc.)
+      throw new Error(parseApiError(networkError, 'Impossible de joindre le serveur.'));
+    }
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      const message = errData.message || `Request failed with status ${res.status}`;
-      throw { status: res.status, message };
+      // Préférer le message métier fourni par GlobalExceptionFilter
+      const message = errData.message
+        ? errData.message
+        : httpStatusToMessage(res.status);
+      throw { status: res.status, message, errorCode: errData.errorCode };
     }
 
     return res.json().catch(() => ({}));

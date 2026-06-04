@@ -13,6 +13,16 @@ services:
       - "traefik.http.routers.medclinik.rule=Host(`medclinik.backnd-api.cloud`)"
       - "traefik.http.routers.medclinik.tls.certresolver=letsencrypt"
       - "traefik.http.services.medclinik.loadbalancer.server.port=3006"
+      # ─── Middleware CORS Traefik ─────────────────────────────────────────────
+      # Gère les en-têtes CORS au niveau du reverse proxy pour éviter toute
+      # interférence avec la configuration NestJS (double CORS headers).
+      - "traefik.http.routers.medclinik.middlewares=medclinik-cors@docker"
+      - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolallowmethods=GET,POST,PUT,PATCH,DELETE,OPTIONS"
+      - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolallowheaders=Authorization,Content-Type,Accept,X-Requested-With"
+      - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolalloworiginlist=https://medclinic.lamine-gaye.tech,http://localhost:3000,http://localhost:3005"
+      - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolallowcredentials=true"
+      - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolmaxage=86400"
+      - "traefik.http.middlewares.medclinik-cors.headers.addvaryheader=true"
     ports:
       - "3010:3006"
     env_file:
