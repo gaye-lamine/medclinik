@@ -93,8 +93,9 @@ export class WaveController {
       const paymentData = body?.data ?? {};
 
       const clientReference: string = paymentData?.client_reference ?? '';
+      // Wave peut envoyer le statut via payment_status OU via le type d'événement
       const paymentStatus: string = paymentData?.payment_status ?? '';
-      const transactionId: string | undefined = paymentData?.transaction_id;
+      const transactionId: string | undefined = paymentData?.transaction_id ?? paymentData?.id;
 
       this.logger.log(`Webhook Wave reçu — type: ${eventType}, statut: ${paymentStatus}, ref: ${clientReference}`);
 
@@ -106,11 +107,28 @@ export class WaveController {
 
       const billId = clientReference.replace('bill_', '');
 
-      if (paymentStatus === 'succeeded') {
+      // Déterminer si le paiement est réussi :
+      // - via l'event type  : checkout.session.completed
+      // - via payment_status: succeeded
+      const isSuccess =
+        eventType === 'checkout.session.completed' ||
+        paymentStatus === 'succeeded';
+
+      // Déterminer si le paiement a échoué :
+      // - via l'event type  : checkout.session.payment_failed
+      // - via payment_status: failed | cancelled
+      const isFailure =
+        eventType === 'checkout.session.payment_failed' ||
+        paymentStatus === 'failed' ||
+        paymentStatus === 'cancelled';
+
+      if (isSuccess) {
         await this.processBillPayment(billId, transactionId);
-      } else if (paymentStatus === 'failed' || paymentStatus === 'cancelled') {
-        this.logger.warn(`Paiement Wave ${paymentStatus} pour facture ${billId}`);
+      } else if (isFailure) {
+        this.logger.warn(`Paiement Wave échoué/annulé pour facture ${billId} (type: ${eventType}, statut: ${paymentStatus})`);
         // Ici on pourrait notifier le frontend via WebSocket si besoin
+      } else {
+        this.logger.log(`Événement Wave ignoré (non actionnable) — type: ${eventType}, statut: ${paymentStatus}`);
       }
     } catch (error: any) {
       this.logger.error(`Erreur traitement Webhook Wave : ${error.message}`, error.stack);
