@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   medclinik-backend:
     build:
@@ -13,9 +11,7 @@ services:
       - "traefik.http.routers.medclinik.rule=Host(`medclinik.backnd-api.cloud`)"
       - "traefik.http.routers.medclinik.tls.certresolver=letsencrypt"
       - "traefik.http.services.medclinik.loadbalancer.server.port=3006"
-      # ─── Middleware CORS Traefik ─────────────────────────────────────────────
-      # Gère les en-têtes CORS au niveau du reverse proxy pour éviter toute
-      # interférence avec la configuration NestJS (double CORS headers).
+      # ─── Middleware CORS Traefik ───────────────────────────────────────────
       - "traefik.http.routers.medclinik.middlewares=medclinik-cors@docker"
       - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolallowmethods=GET,POST,PUT,PATCH,DELETE,OPTIONS"
       - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolallowheaders=Authorization,Content-Type,Accept,X-Requested-With"
@@ -32,8 +28,10 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://medclinik_user:medclinik_password@medclinik-db:5432/medclinik_db?schema=public
+      - REDIS_URL=redis://medclinik-redis:6379
     depends_on:
       - medclinik-db
+      - medclinik-redis
 
   medclinik-db:
     image: postgres:14
@@ -48,5 +46,17 @@ services:
     volumes:
       - medclinik_postgres_data:/var/lib/postgresql/data
 
+  # ─── Redis : rate limiting SMS (fenêtre glissante) ──────────────────────
+  medclinik-redis:
+    image: redis:7-alpine
+    container_name: medclinik-redis
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - medclinik_redis_data:/data
+    # Redis exposé uniquement en interne (pas de port public)
+
 volumes:
   medclinik_postgres_data:
+  medclinik_redis_data:
+

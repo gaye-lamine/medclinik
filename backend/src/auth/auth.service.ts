@@ -37,7 +37,7 @@ export class AuthService {
   async login(user: any, callerIp = '0.0.0.0') {
     // ── Guard : vérifier les quotas SMS avant de générer/envoyer l'OTP ──────
     if (user.phone) {
-      const rateLimitCheck = this.smsRateLimiter.check(callerIp, user.phone);
+      const rateLimitCheck = await this.smsRateLimiter.check(callerIp, user.phone);
       if (!rateLimitCheck.allowed) {
         throw new HttpException(rateLimitCheck.reason ?? 'Trop de tentatives. Réessayez plus tard.', HttpStatus.TOO_MANY_REQUESTS);
       }

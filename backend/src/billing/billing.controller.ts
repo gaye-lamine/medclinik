@@ -117,7 +117,7 @@ export class BillingController {
     }
 
     // ── Guard : rate limit SMS avant tout envoi ────────────────────────
-    const rateLimitCheck = this.smsRateLimiter.check(getClientIp(req), body.phone);
+    const rateLimitCheck = await this.smsRateLimiter.check(getClientIp(req), body.phone);
     if (!rateLimitCheck.allowed) {
       throw new HttpException(rateLimitCheck.reason ?? 'Trop de tentatives SMS. Réessayez plus tard.', HttpStatus.TOO_MANY_REQUESTS);
     }
