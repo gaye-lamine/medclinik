@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Patient } from '../../types/billing';
 import { PatientService } from '../../services/patient.service';
 import { BillingService } from '../../services/billing.service';
+
+interface Doctor {
+  id: string;
+  name: string;
+  role: string;
+}
 
 interface BillCreateFormProps {
   patientService: PatientService;
@@ -9,6 +15,7 @@ interface BillCreateFormProps {
   onBillCreated: () => void;
   onClose: () => void;
   formatFCFA: (amount: number) => string;
+  apiFetch: (path: string, options?: RequestInit) => Promise<any>;
 }
 
 export const BillCreateForm: React.FC<BillCreateFormProps> = ({
@@ -17,14 +24,28 @@ export const BillCreateForm: React.FC<BillCreateFormProps> = ({
   onBillCreated,
   onClose,
   formatFCFA,
+  apiFetch,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [billAmount, setBillAmount] = useState('15000');
   const [specialty, setSpecialty] = useState('Général');
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Charger la liste des médecins au montage
+  useEffect(() => {
+    apiFetch('/auth/users')
+      .then((users: any[]) => {
+        const docs = users.filter((u) => u.role === 'DOCTOR');
+        setDoctors(docs);
+        if (docs.length > 0) setSelectedDoctorId(docs[0].id);
+      })
+      .catch(console.error);
+  }, [apiFetch]);
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -39,13 +60,18 @@ export const BillCreateForm: React.FC<BillCreateFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPatient) return;
+    if (!selectedDoctorId) {
+      setError('Veuillez sélectionner un médecin.');
+      return;
+    }
     try {
       setError(null);
       setIsSubmitting(true);
       await billingService.createBill(
         selectedPatient.id,
         parseFloat(billAmount),
-        specialty
+        selectedDoctorId,
+        specialty,
       );
       setSelectedPatient(null);
       setSearchQuery('');
@@ -109,6 +135,21 @@ export const BillCreateForm: React.FC<BillCreateFormProps> = ({
           <div className="selected-patient-badge">
             <span>Patient : <strong>{selectedPatient.firstName} {selectedPatient.lastName} ({selectedPatient.code})</strong></span>
             <button type="button" onClick={() => setSelectedPatient(null)} className="remove-patient-btn">Annuler</button>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Médecin traitant *</label>
+            <select
+              required
+              value={selectedDoctorId}
+              onChange={(e) => setSelectedDoctorId(e.target.value)}
+              className="form-select"
+            >
+              <option value="">Sélectionner un médecin...</option>
+              {doctors.map((doc) => (
+                <option key={doc.id} value={doc.id}>{doc.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="grid-2">

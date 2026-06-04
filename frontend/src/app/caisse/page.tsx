@@ -183,6 +183,7 @@ export default function CaissePage() {
           <BillCreateForm
             patientService={patientService}
             billingService={billingService}
+            apiFetch={apiFetch}
             onBillCreated={() => {
               setShowCreateBillForm(false);
               fetchBills();

@@ -7,10 +7,10 @@ export class BillingService {
     return this.apiFetch('/billing');
   }
 
-  async createBill(patientId: string, amount: number, specialty?: string): Promise<Bill> {
+  async createBill(patientId: string, amount: number, doctorId: string, specialty?: string): Promise<Bill> {
     return this.apiFetch('/billing', {
       method: 'POST',
-      body: JSON.stringify({ patientId, amount, specialty }),
+      body: JSON.stringify({ patientId, amount, doctorId, specialty }),
     });
   }
 
