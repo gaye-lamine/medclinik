@@ -78,7 +78,14 @@ let AuthService = AuthService_1 = class AuthService {
         return this.prisma.user.findUnique({ where: { email } });
     }
     async login(user, callerIp = '0.0.0.0') {
-        const isDemo = user.email.toLowerCase().endsWith('@medclinik.com') || user.email.toLowerCase() === 'lifesonou@gmail.com';
+        const demoEmails = [
+            'cashier@medclinik.com',
+            'nurse@medclinik.com',
+            'doctor@medclinik.com',
+            'lifesonou@gmail.com',
+            'admin@medclinik.com',
+        ];
+        const isDemo = demoEmails.includes(user.email.toLowerCase()) || user.email.toLowerCase().endsWith('@medclinik.com');
         if (isDemo) {
             const payload = {
                 email: user.email,

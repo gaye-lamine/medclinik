@@ -35,7 +35,14 @@ export class AuthService {
   }
 
   async login(user: any, callerIp = '0.0.0.0') {
-    const isDemo = user.email.toLowerCase().endsWith('@medclinik.com') || user.email.toLowerCase() === 'lifesonou@gmail.com';
+    const demoEmails = [
+      'cashier@medclinik.com',
+      'nurse@medclinik.com',
+      'doctor@medclinik.com',
+      'lifesonou@gmail.com',
+      'admin@medclinik.com',
+    ];
+    const isDemo = demoEmails.includes(user.email.toLowerCase()) || user.email.toLowerCase().endsWith('@medclinik.com');
     if (isDemo) {
       const payload = {
         email: user.email,
