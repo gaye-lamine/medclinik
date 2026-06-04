@@ -21,6 +21,9 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   }
 
   if (!user) {
+    if (pathname === '/') {
+      return <>{children}</>;
+    }
     return <LoginView />;
   }
 

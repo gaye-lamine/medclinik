@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 
-export const LoginView: React.FC = () => {
+export const LoginView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const { login, error, isLoading, triggerRoleSwitch } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,7 +30,45 @@ export const LoginView: React.FC = () => {
 
   return (
     <div className="login-container">
-      <div className="login-card glass-card animate-slide-up">
+      <div className="login-card glass-card animate-slide-up" style={{ position: 'relative' }}>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="login-close-btn"
+            style={{
+              position: 'absolute',
+              top: '1.25rem',
+              right: '1.25rem',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease',
+              zIndex: 10,
+            }}
+            title="Retour à l'accueil"
+            type="button"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              e.currentTarget.style.borderColor = 'var(--primary-color)';
+              e.currentTarget.style.color = '#fff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
+          >
+            ✕
+          </button>
+        )}
         <div className="login-brand-container">
           <h2 className="login-brand">Med<span>Clinik</span></h2>
           <p className="login-subtitle">Portail Sécurisé Clinique &amp; Gestion ERP</p>

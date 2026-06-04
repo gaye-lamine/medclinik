@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth, ROLE_LABELS } from '../components/AuthContext';
 import Link from 'next/link';
+import { LandingPage } from '../components/LandingPage';
 
 interface DashboardData {
   metrics: {
@@ -19,6 +20,12 @@ interface DashboardData {
 
 export default function Dashboard() {
   const { user, apiFetch, token } = useAuth();
+
+  // Si l'utilisateur n'est pas connecté, afficher la Landing Page publique
+  if (!user) {
+    return <LandingPage />;
+  }
+
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
