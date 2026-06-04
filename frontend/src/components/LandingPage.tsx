@@ -285,34 +285,11 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
           <div style={styles.waveVisualCard}>
-            <div className="glass-card" style={styles.wavePhoneMock}>
-              <div style={styles.phoneNotch}></div>
-              <div style={styles.phoneScreen}>
-                <div style={styles.waveBrand}>wave</div>
-                <div style={styles.waveReceipt}>
-                  <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>Paiement Médical</span>
-                  <h3 style={{ fontSize: '1.5rem', color: '#fff', margin: '0.25rem 0 1rem 0' }}>15 000 FCFA</h3>
-                  <div style={styles.waveInfoRow}>
-                    <span>Clinique :</span>
-                    <strong>Pasteur Dakar</strong>
-                  </div>
-                  <div style={styles.waveInfoRow}>
-                    <span>Facture # :</span>
-                    <strong>FAC-2026-89</strong>
-                  </div>
-                  <div style={styles.waveQrPlaceholder}>
-                    {/* Custom Mock QR Code */}
-                    <div style={styles.qrInner}>
-                      <div style={{ ...styles.qrBlock, top: 4, left: 4 }}></div>
-                      <div style={{ ...styles.qrBlock, top: 4, right: 4 }}></div>
-                      <div style={{ ...styles.qrBlock, bottom: 4, left: 4 }}></div>
-                      <div style={{ ...styles.qrBlock, top: 20, left: 20, width: 28, height: 28, backgroundColor: 'var(--primary-color)' }}></div>
-                    </div>
-                  </div>
-                  <div style={styles.waveStatusText}>Scannez pour valider le paiement</div>
-                </div>
-              </div>
-            </div>
+            <img 
+              src="/wave_payment_screen.png" 
+              alt="Wave Payment Checkout Senegal" 
+              style={styles.waveMockupImage} 
+            />
           </div>
         </div>
       </section>
@@ -330,7 +307,12 @@ export const LandingPage: React.FC = () => {
         <div style={styles.rolesGrid}>
           {/* Card Admin */}
           <div className="glass-card" style={styles.roleCard} onClick={() => triggerRoleSwitch('ADMIN')}>
-            <div style={styles.roleIconBg}>🛠️</div>
+            <div style={styles.roleIconBg}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--primary-color)' }}>
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </div>
             <h3 style={styles.roleTitle}>Administrateur</h3>
             <p style={styles.roleDesc}>
               Pilotez l'établissement : statistiques de recettes, logs d'audits financiers de la caisse, gestion des stocks et paramétrage du personnel.
@@ -340,7 +322,11 @@ export const LandingPage: React.FC = () => {
 
           {/* Card Doctor */}
           <div className="glass-card" style={styles.roleCard} onClick={() => triggerRoleSwitch('DOCTOR')}>
-            <div style={styles.roleIconBg}>🩺</div>
+            <div style={styles.roleIconBg}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--secondary-color)' }}>
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+            </div>
             <h3 style={styles.roleTitle}>Médecin</h3>
             <p style={styles.roleDesc}>
               Accédez au DMP des patients, enregistrez les diagnostics de consultations, prescrivez des ordonnances sécurisées et suivez votre file d'attente.
@@ -350,7 +336,15 @@ export const LandingPage: React.FC = () => {
 
           {/* Card Nurse */}
           <div className="glass-card" style={styles.roleCard} onClick={() => triggerRoleSwitch('NURSE')}>
-            <div style={styles.roleIconBg}>💉</div>
+            <div style={styles.roleIconBg}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--primary-color)' }}>
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                <path d="M9 14h6" />
+                <path d="M9 18h6" />
+                <path d="M9 10h6" />
+              </svg>
+            </div>
             <h3 style={styles.roleTitle}>Infirmier</h3>
             <p style={styles.roleDesc}>
               Saisissez les constantes vitales des patients à leur arrivée (pression, pouls, température), gérez l'ordre de passage et assurez le premier accueil.
@@ -360,7 +354,14 @@ export const LandingPage: React.FC = () => {
 
           {/* Card Cashier */}
           <div className="glass-card" style={styles.roleCard} onClick={() => triggerRoleSwitch('CASHIER')}>
-            <div style={styles.roleIconBg}>💵</div>
+            <div style={styles.roleIconBg}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--warning)' }}>
+                <rect x="2" y="5" width="20" height="14" rx="2" ry="2" />
+                <line x1="2" y1="10" x2="22" y2="10" />
+                <line x1="7" y1="15" x2="7.01" y2="15" />
+                <line x1="11" y1="15" x2="13" y2="15" />
+              </svg>
+            </div>
             <h3 style={styles.roleTitle}>Caissier</h3>
             <p style={styles.roleDesc}>
               Émettez les factures d'actes, appliquez la couverture mutuelle tiers-payant, encaissez par Cash/Wave et imprimez les reçus officiels de caisse.
@@ -758,90 +759,13 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  wavePhoneMock: {
-    width: '260px',
-    height: '480px',
-    borderRadius: '36px',
-    border: '6px solid #2d3748',
-    backgroundColor: '#0f172a',
-    position: 'relative',
-    overflow: 'hidden',
-    boxShadow: 'var(--shadow-lg), 0 0 30px rgba(6, 182, 212, 0.1)',
-  },
-  phoneNotch: {
-    width: '120px',
-    height: '18px',
-    backgroundColor: '#2d3748',
-    position: 'absolute',
-    top: 0,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    borderBottomLeftRadius: '12px',
-    borderBottomRightRadius: '12px',
-    zIndex: 2,
-  },
-  phoneScreen: {
-    padding: '2rem 1rem 1rem 1rem',
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1.5rem',
-  },
-  waveBrand: {
-    fontSize: '1.2rem',
-    fontWeight: 900,
-    color: 'var(--primary-color)',
-    textAlign: 'center',
-    fontFamily: 'var(--font-title)',
-    letterSpacing: '-0.5px',
-  },
-  waveReceipt: {
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(255,255,255,0.05)',
-    borderRadius: '16px',
-    padding: '1.25rem 1rem',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    flex: 1,
-  },
-  waveInfoRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
+  waveMockupImage: {
     width: '100%',
-    fontSize: '0.75rem',
-    borderBottom: '1px dotted rgba(255,255,255,0.1)',
-    paddingBottom: '0.4rem',
-    marginBottom: '0.4rem',
-  },
-  waveQrPlaceholder: {
-    width: '120px',
-    height: '120px',
-    backgroundColor: '#fff',
-    borderRadius: '12px',
-    margin: '1rem 0',
-    padding: '0.5rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qrInner: {
-    width: '100%',
-    height: '100%',
-    border: '2px solid #000',
-    position: 'relative',
-  },
-  qrBlock: {
-    position: 'absolute',
-    width: '16px',
-    height: '16px',
-    backgroundColor: '#000',
-  },
-  waveStatusText: {
-    fontSize: '0.65rem',
-    color: 'var(--text-muted)',
-    textAlign: 'center',
-    marginTop: 'auto',
+    maxWidth: '380px',
+    borderRadius: '28px',
+    boxShadow: 'var(--shadow-lg), 0 10px 40px rgba(6, 182, 212, 0.15)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    transition: 'transform 0.4s ease',
   },
   rolesGrid: {
     display: 'grid',
@@ -859,15 +783,15 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
   },
   roleIconBg: {
-    fontSize: '2rem',
-    width: '56px',
-    height: '56px',
-    borderRadius: '14px',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
+    width: '48px',
+    height: '48px',
+    borderRadius: '12px',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    transition: 'all 0.3s ease',
   },
   roleTitle: {
     fontSize: '1.2rem',
