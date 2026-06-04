@@ -40,11 +40,9 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
         <div className="receipt-sheet">
           {/* Clinic Header */}
           <div className="receipt-clinic-header">
-            <Logo size={42} mode="print" />
-            <div style={{ textAlign: 'left' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#000' }}>MedClinik</h3>
-              <p style={{ margin: 0, fontSize: '0.72rem', color: '#555', fontWeight: 600 }}>EXCELLENCE & SÉCURITÉ MEDICALE</p>
-            </div>
+            <Logo size={48} mode="print" />
+            <h3 className="receipt-clinic-title">MedClinik</h3>
+            <p className="receipt-clinic-subtitle">EXCELLENCE & SÉCURITÉ MEDICALE</p>
           </div>
           
           <div className="receipt-clinic-details">
@@ -55,22 +53,24 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
           <div className="receipt-divider"></div>
 
           {/* Receipt Meta Details */}
-          <div className="receipt-details-grid">
-            <div>
-              <span className="meta-label">FACTURE N° :</span>
-              <span className="meta-val">{bill.id.substring(0, 8).toUpperCase()}</span>
+          <div className="receipt-details-list">
+            <div className="receipt-detail-row">
+              <span className="receipt-detail-label">FACTURE N° :</span>
+              <span className="receipt-detail-value">{bill.id.substring(0, 8).toUpperCase()}</span>
             </div>
-            <div>
-              <span className="meta-label">DATE :</span>
-              <span className="meta-val">{new Date(bill.createdAt).toLocaleString('fr-FR')}</span>
+            <div className="receipt-detail-row">
+              <span className="receipt-detail-label">DATE :</span>
+              <span className="receipt-detail-value">{new Date(bill.createdAt).toLocaleString('fr-FR')}</span>
             </div>
-            <div>
-              <span className="meta-label">CAISSIER :</span>
-              <span className="meta-val">{cashierName}</span>
+            <div className="receipt-detail-row">
+              <span className="receipt-detail-label">CAISSIER :</span>
+              <span className="receipt-detail-value">{cashierName}</span>
             </div>
-            <div>
-              <span className="meta-label">PATIENT :</span>
-              <span className="meta-val">{bill.patient?.firstName} {bill.patient?.lastName} ({bill.patient?.code})</span>
+            <div className="receipt-detail-row">
+              <span className="receipt-detail-label">PATIENT :</span>
+              <span className="receipt-detail-value">
+                {bill.patient?.firstName} {bill.patient?.lastName} ({bill.patient?.code})
+              </span>
             </div>
           </div>
 
@@ -80,16 +80,16 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
           <table className="receipt-table">
             <thead>
               <tr>
-                <th style={{ textAlign: 'left', padding: '0.5rem 0', borderBottom: '2px solid #000' }}>Prestation</th>
-                <th style={{ textAlign: 'right', padding: '0.5rem 0', borderBottom: '2px solid #000' }}>Total</th>
+                <th className="receipt-th-left">Prestation</th>
+                <th className="receipt-th-right">Total</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td style={{ padding: '0.6rem 0', fontWeight: 'bold' }}>
+                <td className="receipt-td-left">
                   Consultation médicale {bill.patient?.mutuelleName ? `(${bill.patient.mutuelleName})` : ''}
                 </td>
-                <td style={{ textAlign: 'right', padding: '0.6rem 0', fontWeight: 'bold' }}>
+                <td className="receipt-td-right">
                   {formatFCFA(bill.amount)}
                 </td>
               </tr>
@@ -106,16 +106,17 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
             {bill.mutuelleName && (
               <>
                 <div className="total-row">
-                  <span>Part Mutuelle / Assurance ({bill.insuranceCoverageShare}%) :</span>{' '}
-                  <span style={{ color: '#000' }}>-{formatFCFA(bill.insuranceShare)}</span>
+                  <span>Part Mutuelle ({bill.insuranceCoverageShare}%) :</span>{' '}
+                  <span>-{formatFCFA(bill.insuranceShare)}</span>
                 </div>
-                <div className="total-row">
-                  <span>Prise en charge validée :</span> <span style={{ fontWeight: 600 }}>{bill.mutuelleName}</span>
+                <div className="total-row insurance-note">
+                  <span>Prise en charge :</span> <span>{bill.mutuelleName}</span>
                 </div>
               </>
             )}
-            <div className="total-row net-row">
-              <span>NET À PAYER (PATIENT) :</span> <span className="net-amount">{formatFCFA(bill.patientShare)}</span>
+            <div className="receipt-net-row">
+              <span className="net-label">NET À PAYER :</span>
+              <span className="net-val">{formatFCFA(bill.patientShare)}</span>
             </div>
           </div>
 
@@ -139,13 +140,16 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
               </p>
             )}
 
-            <div className="qr-block">
-              <div className="mock-barcode">||||| | |||| ||| | || |||| | ||||| | ||</div>
-              {qrUrl ? (
-                <img src={qrUrl} alt="QR Code" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
-              ) : (
-                <div className="mock-qrcode">QR SECURE</div>
+            <div className="receipt-verification-area">
+              {qrUrl && (
+                <div className="receipt-qrcode-container">
+                  <img src={qrUrl} alt="QR Code" className="receipt-qrcode" />
+                  <p className="qr-caption">Scanner pour authentifier</p>
+                </div>
               )}
+              <div className="receipt-barcode">
+                ||||| | |||| ||| | || |||| | ||||| | ||
+              </div>
             </div>
 
             <p className="footer-cert">Document électronique certifié conforme. Système anti-fraude MedClinik.</p>
@@ -156,10 +160,11 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
           <button
             onClick={() => { generateReceiptPDF(bill, cashierName, formatFCFA).catch(console.error); }}
             className="btn btn-primary"
+            style={{ flex: 1 }}
           >
             📥 Télécharger PDF
           </button>
-          <button onClick={() => window.print()} className="btn btn-secondary">
+          <button onClick={() => window.print()} className="btn btn-secondary" style={{ flex: 1 }}>
             🖨️ Imprimer
           </button>
         </div>
@@ -180,7 +185,7 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
           z-index: 9999;
         }
         .receipt-modal {
-          max-width: 480px;
+          max-width: 450px;
           width: 90%;
           max-height: 90vh;
           overflow-y: auto;
@@ -188,10 +193,10 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
           border-radius: 16px;
           display: flex;
           flex-direction: column;
-          gap: 1rem;
-          background: rgba(10, 15, 30, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+          gap: 1.25rem;
+          background: rgba(10, 15, 30, 0.95);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
         }
         .receipt-modal::-webkit-scrollbar {
           width: 6px;
@@ -211,11 +216,14 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
           display: flex;
           justify-content: space-between;
           align-items: center;
+          padding-bottom: 0.25rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         .receipt-header h2 {
-          font-size: 1.15rem;
+          font-size: 1.1rem;
           font-weight: 700;
           color: #fff;
+          margin: 0;
         }
         .close-receipt-btn {
           background: none;
@@ -232,117 +240,185 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
         .receipt-sheet {
           background-color: #ffffff;
           color: #000000;
-          padding: 2.2rem;
-          border-radius: 8px;
+          padding: 2rem 1.75rem;
+          border-radius: 12px;
           font-family: 'Courier New', Courier, monospace;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
           border: 1px solid #ddd;
         }
         .receipt-clinic-header {
           display: flex;
+          flex-direction: column;
           align-items: center;
-          justify-content: center;
-          gap: 0.8rem;
-          margin-bottom: 0.5rem;
+          gap: 0.5rem;
+          margin-bottom: 0.75rem;
+        }
+        .receipt-clinic-title {
+          font-size: 1.3rem;
+          font-weight: 800;
+          color: #000;
+          margin: 0;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+        .receipt-clinic-subtitle {
+          font-size: 0.7rem;
+          color: #666;
+          font-weight: bold;
+          margin: 0;
+          letter-spacing: 0.5px;
         }
         .receipt-clinic-details {
           text-align: center;
           font-size: 0.72rem;
           color: #555;
-          line-height: 1.4;
+          line-height: 1.45;
           font-weight: 600;
+        }
+        .receipt-clinic-details p {
+          margin: 0;
         }
         .receipt-divider {
           border-top: 1px dashed #000;
           margin: 1.25rem 0;
         }
-        .receipt-details-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 0.5rem;
-          font-size: 0.8rem;
+        .receipt-details-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+          font-size: 0.78rem;
           color: #000;
         }
-        .meta-label {
-          font-weight: bold;
-          display: inline-block;
-          width: 120px;
+        .receipt-detail-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
         }
-        .meta-val {
-          font-family: inherit;
+        .receipt-detail-label {
+          font-weight: bold;
+        }
+        .receipt-detail-value {
+          text-align: right;
         }
         .receipt-table {
           width: 100%;
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           border-collapse: collapse;
           color: #000;
+        }
+        .receipt-th-left {
+          text-align: left;
+          padding: 0.4rem 0;
+          border-bottom: 1.5px solid #000;
+          font-weight: bold;
+        }
+        .receipt-th-right {
+          text-align: right;
+          padding: 0.4rem 0;
+          border-bottom: 1.5px solid #000;
+          font-weight: bold;
+        }
+        .receipt-td-left {
+          padding: 0.5rem 0;
+          font-weight: bold;
+          text-align: left;
+        }
+        .receipt-td-right {
+          padding: 0.5rem 0;
+          font-weight: bold;
+          text-align: right;
         }
         .receipt-total-block {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
-          font-size: 0.8rem;
+          gap: 0.4rem;
+          font-size: 0.78rem;
           color: #000;
         }
         .total-row {
           display: flex;
           justify-content: space-between;
-          align-items: center;
         }
-        .net-row {
-          border-top: 1px solid #000;
-          padding-top: 0.5rem;
+        .insurance-note {
+          font-style: italic;
+          color: #333;
+        }
+        .receipt-net-row {
+          border-top: 1.5px double #000;
+          border-bottom: 1.5px double #000;
+          padding: 0.5rem 0;
           margin-top: 0.25rem;
-          font-weight: 900;
+          display: flex;
+          justify-content: space-between;
+          font-weight: bold;
         }
-        .net-amount {
-          font-size: 1.2rem;
-          text-decoration: underline;
+        .net-label {
+          font-size: 0.95rem;
+        }
+        .net-val {
+          font-size: 1.15rem;
         }
         .receipt-footer {
           text-align: center;
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           color: #000;
           line-height: 1.4;
         }
         .payment-method-desc {
-          margin-bottom: 0.25rem;
+          margin: 0 0 0.25rem 0;
+          font-size: 0.78rem;
         }
         .transaction-id-desc {
           font-size: 0.7rem;
           color: #333;
-          margin-bottom: 0.5rem;
+          margin: 0 0 0.5rem 0;
         }
-        .qr-block {
+        .receipt-verification-area {
           display: flex;
-          justify-content: space-between;
+          flex-direction: column;
           align-items: center;
-          margin: 1.2rem 0;
+          gap: 0.75rem;
+          margin: 1.5rem 0;
+        }
+        .receipt-qrcode-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.25rem;
+        }
+        .receipt-qrcode {
+          width: 80px;
+          height: 80px;
           border: 1px solid #000;
-          padding: 0.5rem 0.75rem;
-          border-radius: 4px;
-        }
-        .mock-barcode {
-          font-size: 1rem;
-          letter-spacing: -1.5px;
-          font-weight: bold;
-        }
-        .mock-qrcode {
-          border: 1.5px solid #000;
-          padding: 0.25rem 0.4rem;
-          font-size: 0.55rem;
-          font-weight: 900;
-          border-radius: 2px;
+          padding: 2px;
           background: #fff;
+        }
+        .qr-caption {
+          font-size: 0.6rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #555;
+          margin: 0;
+          font-weight: 600;
+        }
+        .receipt-barcode {
+          font-family: monospace;
+          font-size: 1.1rem;
+          letter-spacing: 2px;
+          color: #000;
+          font-weight: bold;
         }
         .footer-cert {
           font-size: 0.65rem;
           color: #666;
           font-style: italic;
+          margin: 0;
         }
         .print-action-row {
           display: flex;
-          justify-content: flex-end;
+          justify-content: space-between;
+          gap: 0.75rem;
+          padding-top: 0.25rem;
         }
 
         /* ─── PRINT SPECIFIC OVERRIDES ───────────────────────────────────────── */
