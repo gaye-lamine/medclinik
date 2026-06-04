@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
+import { Logo } from './Logo';
 
 export const LoginView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const { login, error, isLoading, triggerRoleSwitch } = useAuth();
@@ -69,8 +70,9 @@ export const LoginView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             ✕
           </button>
         )}
-        <div className="login-brand-container">
-          <h2 className="login-brand">Med<span>Clinik</span></h2>
+        <div className="login-brand-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+          <Logo size={42} mode="neon" />
+          <h2 className="login-brand" style={{ margin: '0.5rem 0 0.2rem 0' }}>Med<span>Clinik</span></h2>
           <p className="login-subtitle">Portail Sécurisé Clinique &amp; Gestion ERP</p>
         </div>
 

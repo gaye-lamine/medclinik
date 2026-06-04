@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth, ROLE_LABELS } from './AuthContext';
+import { Logo } from './Logo';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -60,8 +61,9 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="navbar">
-      <Link href="/" className="nav-brand">
-        Med<span>Clinik</span>
+      <Link href="/" className="nav-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <Logo size={28} mode="neon" />
+        <span>Med<span>Clinik</span></span>
       </Link>
 
       <nav className="navbar-nav">

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../components/AuthContext';
+import { Logo } from '../../components/Logo';
 
 interface FinancialItem {
   method: string;
@@ -160,8 +161,16 @@ export default function ReportsPage() {
 
       {/* Printable Document Header (visible only when printing) */}
       <div style={styles.printHeader} className="print-only">
-        <h2>Rapport Journalier d'Activité — MedClinik</h2>
-        <p>Généré le : {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR')}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.5rem', justifyContent: 'flex-start' }}>
+          <Logo size={42} mode="print" />
+          <div style={{ textAlign: 'left' }}>
+            <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#000' }}>MedClinik</h3>
+            <p style={{ margin: 0, fontSize: '0.72rem', color: '#555', fontWeight: 600 }}>RAPPORTS D'ACTIVITÉ & ANALYSES HÔPITAL</p>
+          </div>
+        </div>
+        <p style={{ fontSize: '0.85rem', color: '#333', marginTop: '0.5rem', textAlign: 'left' }}>
+          Document de Bilan Journalier · Généré le : {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR')}
+        </p>
         <div style={{ borderBottom: '2px solid #000', margin: '1rem 0' }}></div>
       </div>
 

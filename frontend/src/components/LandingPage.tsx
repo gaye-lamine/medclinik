@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { LoginView } from './LoginView';
+import { Logo } from './Logo';
 
 // ─── SCROLL ANIMATION HOOK ────────────────────────────────────────────────────
 function useScrollReveal() {
@@ -58,8 +59,9 @@ export const LandingPage: React.FC = () => {
 
       {/* ── NAVBAR ─────────────────────────────────────────────────────────── */}
       <header style={{ ...s.nav, ...(scrolled ? s.navScrolled : {}) }}>
-        <span style={s.navBrand} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          Med<span style={s.navBrandAccent}>Clinik</span>
+        <span style={{ ...s.navBrand, display: 'flex', alignItems: 'center', gap: '0.6rem' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <Logo size={28} mode="neon" />
+          <span>Med<span style={s.navBrandAccent}>Clinik</span></span>
         </span>
         <nav style={s.navCenter}>
           {['features', 'roles', 'wave-integration'].map((id, i) => (

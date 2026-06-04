@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth, API_URL } from '../../components/AuthContext';
 import { useToast } from '../../components/ToastContext';
+import { Logo } from '../../components/Logo';
 
 interface Patient {
   id: string;
@@ -271,6 +272,44 @@ export default function ConsultationPage() {
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <style jsx global>{`
+        @media print {
+          body, html {
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          header, .navbar, .btn, .no-print, .main-content > *:not(.print-prescription-only), .glass-card:not(.print-prescription-only) {
+            display: none !important;
+          }
+          .main-content {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+          }
+          .app-container {
+            display: block !important;
+          }
+          .print-prescription-only {
+            display: block !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            padding: 1.5cm !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            font-family: 'SF Pro Display', -apple-system, sans-serif !important;
+          }
+          .print-prescription-only * {
+            color: #000000 !important;
+          }
+        }
+      `}</style>
       <div>
         <h1>Dossier Médical Partagé (DMP) &amp; Consultations</h1>
         <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
@@ -448,32 +487,99 @@ export default function ConsultationPage() {
                     </button>
                   </div>
                 ) : (
-                  <div style={styles.activeRxSheet}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                  <div style={styles.activeRxSheet} className="print-prescription-only">
+                    {/* Screen-only header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }} className="no-print">
                       <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>Ordonnance Signée Numériquement</span>
                       <span style={{ fontFamily: 'monospace', color: 'var(--primary-color)' }}>ID: {activePrescription.uniqueCode}</span>
                     </div>
 
+                    {/* Official Prescription Sheet */}
                     <div style={styles.rxContentPrint}>
-                      <p><strong>Clinique MedClinik</strong> | Service Médical</p>
-                      <p>Prescrit par : {selectedConsult.doctor.name}</p>
-                      <div style={styles.divider}></div>
-                      <ul>
-                        {activePrescription.medicines.map((med, idx) => (
-                          <li key={idx} style={{ margin: '0.4rem 0' }}>
-                            — <strong>{med.name}</strong> : {med.dosage} ({med.duration})
-                          </li>
-                        ))}
-                      </ul>
+                      {/* Clinic Letterhead Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #000', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                          <Logo size={42} mode="print" />
+                          <div style={{ textAlign: 'left' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#000' }}>MedClinik</h3>
+                            <p style={{ margin: 0, fontSize: '0.72rem', color: '#555', fontWeight: 600 }}>SÉCURITÉ & EXCELLENCE HOSPITALIÈRE</p>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#333', lineHeight: 1.4 }}>
+                          <p><strong>Clinique MedClinik Cocody</strong></p>
+                          <p>Abidjan, Mermoz — BP 221</p>
+                          <p>Tél: +225 07 00 00 00</p>
+                          <p>contact@medclinik.com</p>
+                        </div>
+                      </div>
+
+                      {/* Doctor & Patient Metadata Info */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '1.5rem', marginBottom: '2rem', fontSize: '0.85rem', color: '#000' }}>
+                        <div style={{ borderRight: '1px solid #ddd', paddingRight: '1rem', textAlign: 'left' }}>
+                          <p style={{ margin: '0.2rem 0', color: '#666', fontWeight: 600 }}>PRATICIEN PRECRIPTEUR :</p>
+                          <p style={{ fontSize: '1.05rem', fontWeight: 'bold', margin: '0.1rem 0' }}>Dr. {selectedConsult.doctor.name}</p>
+                          <p style={{ color: '#555', fontSize: '0.8rem' }}>Spécialité : {selectedConsult.specialty}</p>
+                        </div>
+                        <div style={{ textAlign: 'left' }}>
+                          <p style={{ margin: '0.2rem 0', color: '#666', fontWeight: 600 }}>PATIENT :</p>
+                          <p style={{ fontSize: '1.05rem', fontWeight: 'bold', margin: '0.1rem 0' }}>{selectedConsult.patient.firstName} {selectedConsult.patient.lastName}</p>
+                          <p style={{ color: '#555', fontSize: '0.8rem' }}>Code DMP : {selectedConsult.patient.code} | Sexe : {selectedConsult.patient.gender}</p>
+                          <p style={{ color: '#555', fontSize: '0.8rem', marginTop: '0.4rem' }}><strong>Date :</strong> {new Date(activePrescription.createdAt).toLocaleDateString('fr-FR')}</p>
+                        </div>
+                      </div>
+
+                      {/* Prescription Body Logo/Watermark (Optional Rx Symbol) */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.2rem' }}>
+                        <span style={{ fontSize: '1.4rem', fontWeight: 'bold', fontFamily: 'serif', color: '#000' }}>Rx :</span>
+                        <div style={{ flex: 1, borderBottom: '1px dashed #aaa' }}></div>
+                      </div>
+
+                      {/* Medicines Table */}
+                      <table className="rx-print-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid #000' }}>
+                            <th style={{ padding: '0.5rem', fontSize: '0.82rem', fontWeight: 'bold', color: '#000', textTransform: 'uppercase' }}>Médicament / Traitement</th>
+                            <th style={{ padding: '0.5rem', fontSize: '0.82rem', fontWeight: 'bold', color: '#000', textTransform: 'uppercase' }}>Posologie / Fréquence</th>
+                            <th style={{ padding: '0.5rem', fontSize: '0.82rem', fontWeight: 'bold', color: '#000', textTransform: 'uppercase', textAlign: 'right' }}>Durée</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activePrescription.medicines.map((med, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                              <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.9rem', color: '#000', fontWeight: 'bold' }}>{med.name}</td>
+                              <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.9rem', color: '#333' }}>{med.dosage}</td>
+                              <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.9rem', color: '#333', textAlign: 'right' }}>{med.duration}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
                       {activePrescription.instructions && (
-                        <p style={{ marginTop: '0.8rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                          * Recommandations : {activePrescription.instructions}
-                        </p>
+                        <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '8px', borderLeft: '3px solid #000', fontSize: '0.85rem', color: '#333', textAlign: 'left' }}>
+                          <strong>Recommandations cliniques :</strong>
+                          <p style={{ margin: '0.35rem 0 0 0', lineHeight: 1.45 }}>{activePrescription.instructions}</p>
+                        </div>
                       )}
+
+                      {/* Prescription Signature / Seal Area */}
+                      <div style={{ marginTop: '4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                        <div style={{ fontSize: '0.7rem', color: '#666', maxWidth: '380px', lineHeight: 1.4, textAlign: 'left' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--success)', fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                            <span style={{ fontSize: '0.85rem' }}>✓</span> Certifié et signé électroniquement
+                          </div>
+                          Réf DMP : <code>{activePrescription.uniqueCode}</code>
+                          <p style={{ marginTop: '0.2rem' }}>Ce document médical est conforme à la législation sur la signature électronique des actes de soins de santé.</p>
+                        </div>
+                        <div style={{ textAlign: 'center', border: '1px solid #ddd', padding: '0.5rem', borderRadius: '4px', background: '#fafafa', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', minWidth: '100px' }}>
+                          <span style={{ fontSize: '0.5rem', fontWeight: 800, color: '#333' }}>SECURE QR DMP</span>
+                          <div style={{ width: '42px', height: '42px', border: '1.5px solid #000', borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.5rem', fontWeight: 'bold', color: '#000', background: '#fff' }}>QR</div>
+                          <span style={{ fontSize: '0.45rem', color: '#777' }}>MedClinik v1.0</span>
+                        </div>
+                      </div>
                     </div>
 
-                    <button onClick={() => window.print()} className="btn btn-secondary" style={{ alignSelf: 'flex-end', fontSize: '0.8rem' }}>
-                      Imprimer / Partager
+                    <button onClick={() => window.print()} className="btn btn-secondary no-print" style={{ alignSelf: 'flex-end', fontSize: '0.8rem', marginTop: '1rem' }}>
+                      🖨️ Imprimer l'Ordonnance
                     </button>
                   </div>
                 )}
