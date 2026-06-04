@@ -49,78 +49,133 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WaveController = void 0;
 const common_1 = require("@nestjs/common");
 const crypto = __importStar(require("crypto"));
-const billing_service_1 = require("../billing/billing.service");
+const billing_service_js_1 = require("../billing/billing.service.js");
+const wave_service_js_1 = require("./wave.service.js");
+const jwt_auth_guard_js_1 = require("../auth/jwt-auth.guard.js");
+const swagger_1 = require("@nestjs/swagger");
 let WaveController = WaveController_1 = class WaveController {
     billingService;
+    waveService;
     logger = new common_1.Logger(WaveController_1.name);
-    constructor(billingService) {
+    processedBills = new Set();
+    constructor(billingService, waveService) {
         this.billingService = billingService;
+        this.waveService = waveService;
     }
-    verifySignature(secret, signature, rawBody) {
-        try {
-            if (!signature || !signature.includes('t=') || !signature.includes('v1=')) {
-                return false;
-            }
-            const parts = signature.split(',');
-            const timestampPart = parts.find((part) => part.startsWith('t='));
-            const signatures = parts
-                .filter((part) => part.startsWith('v1='))
-                .map((part) => part.split('=')[1]);
-            if (!timestampPart || signatures.length === 0) {
-                return false;
-            }
-            const timestamp = timestampPart.split('=')[1];
-            const payload = Buffer.concat([Buffer.from(timestamp, 'utf8'), rawBody]);
-            const hmac = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-            return signatures.includes(hmac);
+    async checkStatus(billId) {
+        const bill = await this.billingService.findOne(billId);
+        const currentStatus = bill?.status ?? 'NOT_FOUND';
+        if (currentStatus === 'PAID') {
+            return { status: 'succeeded', billStatus: 'PAID' };
         }
-        catch (e) {
-            this.logger.error('Erreur lors de la vérification de la signature Wave', e);
-            return false;
+        const waveStatus = await this.waveService.getSessionStatus(billId);
+        if (waveStatus === 'succeeded' && bill && currentStatus !== 'PAID') {
+            this.logger.warn(`Webhook manqué pour facture ${billId} — traitement via polling fallback`);
+            await this.processBillPayment(billId, undefined);
         }
+        return { status: waveStatus, billStatus: currentStatus };
     }
     async handleWebhook(req, res, waveSignature) {
         const secret = process.env.WAVE_WEBHOOK_SECRET;
         if (!secret) {
-            this.logger.error('WAVE_WEBHOOK_SECRET non configuré.');
-            return res.status(500).json({ message: 'Configuration error' });
+            this.logger.error('WAVE_WEBHOOK_SECRET non configuré — webhook rejeté.');
+            return res.status(500).json({ success: false, message: 'Server configuration error' });
         }
         if (!req.rawBody) {
-            this.logger.error('rawBody manquant, impossible de vérifier la signature Webhook.');
-            return res.status(400).json({ message: 'rawBody missing' });
+            this.logger.error('rawBody manquant — impossible de vérifier la signature.');
+            return res.status(400).json({ success: false, message: 'Missing raw body' });
         }
-        const isValid = this.verifySignature(secret, waveSignature, req.rawBody);
-        if (!isValid) {
-            this.logger.warn('Signature Webhook Wave invalide.');
-            return res.status(401).json({ message: 'Unauthorized' });
+        if (!this.verifySignature(secret, waveSignature, req.rawBody)) {
+            this.logger.warn(`Signature Webhook Wave invalide — signature reçue : ${waveSignature?.substring(0, 30)}...`);
+            return res.status(401).json({ success: false, message: 'Invalid signature' });
         }
-        res.status(200).json({ message: 'OK' });
+        res.status(200).json({ success: true, message: 'Webhook reçu' });
         try {
-            const data = req.body;
-            const clientReference = data?.data?.client_reference;
-            const paymentStatus = data?.data?.payment_status;
-            const transactionId = data?.data?.transaction_id;
-            if (!clientReference || !clientReference.startsWith('bill_')) {
+            const body = req.body;
+            const eventType = body?.type ?? '';
+            const paymentData = body?.data ?? {};
+            const clientReference = paymentData?.client_reference ?? '';
+            const paymentStatus = paymentData?.payment_status ?? '';
+            const transactionId = paymentData?.transaction_id;
+            this.logger.log(`Webhook Wave reçu — type: ${eventType}, statut: ${paymentStatus}, ref: ${clientReference}`);
+            if (!clientReference.startsWith('bill_')) {
+                this.logger.warn(`Référence inconnue ignorée : ${clientReference}`);
                 return;
             }
             const billId = clientReference.replace('bill_', '');
-            this.logger.log(`Webhook reçu pour la facture ${billId} : statut = ${paymentStatus}`);
             if (paymentStatus === 'succeeded') {
-                await this.billingService.pay(billId, null, {
-                    paymentMethod: 'MOBILE_MONEY_WAVE',
-                    transactionId: transactionId,
-                });
-                this.logger.log(`Facture ${billId} marquée comme payée avec succès via Wave.`);
+                await this.processBillPayment(billId, transactionId);
+            }
+            else if (paymentStatus === 'failed' || paymentStatus === 'cancelled') {
+                this.logger.warn(`Paiement Wave ${paymentStatus} pour facture ${billId}`);
             }
         }
         catch (error) {
-            this.logger.error(`Erreur traitement Webhook Wave: ${error.message}`);
+            this.logger.error(`Erreur traitement Webhook Wave : ${error.message}`, error.stack);
+        }
+    }
+    async processBillPayment(billId, transactionId) {
+        if (this.processedBills.has(billId)) {
+            this.logger.warn(`Facture ${billId} déjà traitée — webhook dupliqué ignoré.`);
+            return;
+        }
+        const existing = await this.billingService.findOne(billId);
+        if (existing?.status === 'PAID') {
+            this.processedBills.add(billId);
+            this.logger.warn(`Facture ${billId} déjà payée en base — webhook ignoré.`);
+            return;
+        }
+        await this.billingService.pay(billId, null, {
+            paymentMethod: 'MOBILE_MONEY_WAVE',
+            transactionId: transactionId ?? `WAVE-${billId}`,
+        });
+        this.processedBills.add(billId);
+        this.logger.log(`✅ Facture ${billId} marquée comme payée via Wave (transactionId: ${transactionId ?? 'N/A'})`);
+    }
+    verifySignature(secret, signature, rawBody) {
+        try {
+            if (!signature?.includes('t=') || !signature?.includes('v1=')) {
+                return false;
+            }
+            const parts = signature.split(',');
+            const timestampPart = parts.find((p) => p.startsWith('t='));
+            const signatureValues = parts
+                .filter((p) => p.startsWith('v1='))
+                .map((p) => p.split('=')[1]);
+            if (!timestampPart || signatureValues.length === 0) {
+                return false;
+            }
+            const timestamp = timestampPart.split('=')[1];
+            const tsAge = Date.now() - parseInt(timestamp, 10) * 1000;
+            if (tsAge > 5 * 60 * 1000) {
+                this.logger.warn(`Webhook Wave rejeté : timestamp trop ancien (${Math.round(tsAge / 1000)}s)`);
+                return false;
+            }
+            const payload = Buffer.concat([Buffer.from(timestamp, 'utf8'), rawBody]);
+            const hmac = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+            return signatureValues.some((sig) => crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(hmac, 'hex')));
+        }
+        catch (e) {
+            this.logger.error(`Erreur vérification signature Wave : ${e.message}`);
+            return false;
         }
     }
 };
 exports.WaveController = WaveController;
 __decorate([
+    (0, common_1.Get)('status/:billId'),
+    (0, common_1.UseGuards)(jwt_auth_guard_js_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Vérifier manuellement le statut du paiement Wave d\'une facture' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Statut retourné' }),
+    __param(0, (0, common_1.Param)('billId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], WaveController.prototype, "checkStatus", null);
+__decorate([
     (0, common_1.Post)('webhook'),
+    (0, swagger_1.ApiOperation)({ summary: 'Webhook Wave CI — réception des événements de paiement' }),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Res)()),
     __param(2, (0, common_1.Headers)('wave-signature')),
@@ -129,7 +184,9 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], WaveController.prototype, "handleWebhook", null);
 exports.WaveController = WaveController = WaveController_1 = __decorate([
+    (0, swagger_1.ApiTags)('Wave'),
     (0, common_1.Controller)('wave'),
-    __metadata("design:paramtypes", [billing_service_1.BillingService])
+    __metadata("design:paramtypes", [billing_service_js_1.BillingService,
+        wave_service_js_1.WaveService])
 ], WaveController);
 //# sourceMappingURL=wave.controller.js.map

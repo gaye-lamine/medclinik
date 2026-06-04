@@ -8,18 +8,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WaveModule = void 0;
 const common_1 = require("@nestjs/common");
-const wave_controller_1 = require("./wave.controller");
-const wave_service_1 = require("./wave.service");
+const wave_controller_js_1 = require("./wave.controller.js");
+const wave_service_js_1 = require("./wave.service.js");
 const billing_module_js_1 = require("../billing/billing.module.js");
+const auth_module_js_1 = require("../auth/auth.module.js");
 let WaveModule = class WaveModule {
 };
 exports.WaveModule = WaveModule;
 exports.WaveModule = WaveModule = __decorate([
     (0, common_1.Module)({
-        imports: [(0, common_1.forwardRef)(() => billing_module_js_1.BillingModule)],
-        controllers: [wave_controller_1.WaveController],
-        providers: [wave_service_1.WaveService],
-        exports: [wave_service_1.WaveService],
+        imports: [(0, common_1.forwardRef)(() => billing_module_js_1.BillingModule), auth_module_js_1.AuthModule],
+        controllers: [wave_controller_js_1.WaveController],
+        providers: [wave_service_js_1.WaveService],
+        exports: [wave_service_js_1.WaveService],
     })
 ], WaveModule);
 //# sourceMappingURL=wave.module.js.map

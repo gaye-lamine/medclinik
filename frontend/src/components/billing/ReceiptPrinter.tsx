@@ -140,7 +140,7 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
 
         <div className="print-action-row no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button
-            onClick={() => generateReceiptPDF(bill, cashierName, formatFCFA)}
+            onClick={() => { generateReceiptPDF(bill, cashierName, formatFCFA).catch(console.error); }}
             className="btn btn-primary"
           >
             📥 Télécharger PDF

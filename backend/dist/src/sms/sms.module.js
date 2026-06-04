@@ -8,14 +8,15 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SmsModule = void 0;
 const common_1 = require("@nestjs/common");
-const sms_service_1 = require("./sms.service");
+const sms_service_js_1 = require("./sms.service.js");
+const sms_rate_limiter_service_js_1 = require("./sms-rate-limiter.service.js");
 let SmsModule = class SmsModule {
 };
 exports.SmsModule = SmsModule;
 exports.SmsModule = SmsModule = __decorate([
     (0, common_1.Module)({
-        providers: [sms_service_1.SmsService],
-        exports: [sms_service_1.SmsService],
+        providers: [sms_service_js_1.SmsService, sms_rate_limiter_service_js_1.SmsRateLimiterService],
+        exports: [sms_service_js_1.SmsService, sms_rate_limiter_service_js_1.SmsRateLimiterService],
     })
 ], SmsModule);
 //# sourceMappingURL=sms.module.js.map

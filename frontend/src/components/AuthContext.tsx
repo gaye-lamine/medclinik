@@ -126,9 +126,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await res.json();
-      setTempToken(data.tempToken);
-      setPhoneDigits(data.phone);
-      setShowOtpModal(true);
+      if (data.accessToken) {
+        localStorage.setItem('mc_token', data.accessToken);
+        localStorage.setItem('mc_user', JSON.stringify(data.user));
+        setToken(data.accessToken);
+        setUser(data.user);
+        setShowOtpModal(false);
+      } else {
+        setTempToken(data.tempToken);
+        setPhoneDigits(data.phone);
+        setShowOtpModal(true);
+      }
     } catch (e: unknown) {
       const message = parseApiError(e, 'Erreur lors de la connexion.');
       setError(message);
@@ -159,10 +167,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await res.json();
-      setPendingRole(role);
-      setTempToken(data.tempToken);
-      setPhoneDigits(data.phone);
-      setShowOtpModal(true); // Open 2FA Screen
+      if (data.accessToken) {
+        localStorage.setItem('mc_token', data.accessToken);
+        localStorage.setItem('mc_user', JSON.stringify(data.user));
+        setToken(data.accessToken);
+        setUser(data.user);
+        setShowOtpModal(false);
+      } else {
+        setPendingRole(role);
+        setTempToken(data.tempToken);
+        setPhoneDigits(data.phone);
+        setShowOtpModal(true); // Open 2FA Screen
+      }
     } catch (e: unknown) {
       setError(parseApiError(e, 'Erreur lors du changement de rôle.'));
     }

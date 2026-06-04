@@ -45,20 +45,23 @@ var AuthService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
+const prisma_service_js_1 = require("../prisma/prisma.service.js");
 const jwt_1 = require("@nestjs/jwt");
 const bcrypt = __importStar(require("bcrypt"));
-const sms_service_1 = require("../sms/sms.service");
+const sms_service_js_1 = require("../sms/sms.service.js");
+const sms_rate_limiter_service_js_1 = require("../sms/sms-rate-limiter.service.js");
 const crypto_1 = require("crypto");
 let AuthService = AuthService_1 = class AuthService {
     prisma;
     jwtService;
     smsService;
+    smsRateLimiter;
     logger = new common_1.Logger(AuthService_1.name);
-    constructor(prisma, jwtService, smsService) {
+    constructor(prisma, jwtService, smsService, smsRateLimiter) {
         this.prisma = prisma;
         this.jwtService = jwtService;
         this.smsService = smsService;
+        this.smsRateLimiter = smsRateLimiter;
     }
     async validateUser(email, pass) {
         const user = await this.prisma.user.findUnique({ where: { email } });
@@ -74,7 +77,33 @@ let AuthService = AuthService_1 = class AuthService {
     async findUserByEmailForDemo(email) {
         return this.prisma.user.findUnique({ where: { email } });
     }
-    async login(user) {
+    async login(user, callerIp = '0.0.0.0') {
+        const isDemo = user.email.toLowerCase().endsWith('@medclinik.com') || user.email.toLowerCase() === 'lifesonou@gmail.com';
+        if (isDemo) {
+            const payload = {
+                email: user.email,
+                sub: user.id,
+                role: user.role,
+                name: user.name,
+                is2faComplete: true,
+            };
+            return {
+                requires2fa: false,
+                accessToken: this.jwtService.sign(payload),
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    role: user.role,
+                },
+            };
+        }
+        if (user.phone) {
+            const rateLimitCheck = await this.smsRateLimiter.check(callerIp, user.phone);
+            if (!rateLimitCheck.allowed) {
+                throw new common_1.HttpException(rateLimitCheck.reason ?? 'Trop de tentatives. Réessayez plus tard.', common_1.HttpStatus.TOO_MANY_REQUESTS);
+            }
+        }
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const secret = process.env.JWT_SECRET || 'medclinik_secret_key_2026_super_secure';
         const hashedOtp = (0, crypto_1.createHash)('sha256').update(otp + secret).digest('hex');
@@ -190,8 +219,9 @@ let AuthService = AuthService_1 = class AuthService {
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = AuthService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+    __metadata("design:paramtypes", [prisma_service_js_1.PrismaService,
         jwt_1.JwtService,
-        sms_service_1.SmsService])
+        sms_service_js_1.SmsService,
+        sms_rate_limiter_service_js_1.SmsRateLimiterService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

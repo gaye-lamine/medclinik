@@ -581,17 +581,19 @@ export default function ConsultationPage() {
 
                     <div style={{ display: 'flex', gap: '0.75rem', alignSelf: 'flex-end', marginTop: '1rem' }} className="no-print">
                       <button
-                        onClick={() => generatePrescriptionPDF(
-                          activePrescription,
-                          selectedConsult.doctor.name,
-                          selectedConsult.specialty,
-                          {
-                            firstName: selectedConsult.patient.firstName,
-                            lastName: selectedConsult.patient.lastName,
-                            code: selectedConsult.patient.code,
-                            gender: selectedConsult.patient.gender
-                          }
-                        )}
+                        onClick={() => {
+                          generatePrescriptionPDF(
+                            activePrescription,
+                            selectedConsult.doctor.name,
+                            selectedConsult.specialty,
+                            {
+                              firstName: selectedConsult.patient.firstName,
+                              lastName: selectedConsult.patient.lastName,
+                              code: selectedConsult.patient.code,
+                              gender: selectedConsult.patient.gender
+                            }
+                          ).catch(console.error);
+                        }}
                         className="btn btn-primary"
                         style={{ fontSize: '0.8rem' }}
                       >

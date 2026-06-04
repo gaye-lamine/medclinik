@@ -14,26 +14,36 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BillingController = void 0;
 const common_1 = require("@nestjs/common");
-const billing_service_1 = require("./billing.service");
-const wave_service_1 = require("../wave/wave.service");
-const sms_service_1 = require("../sms/sms.service");
-const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
-const roles_decorator_1 = require("../auth/roles.decorator");
+const billing_service_js_1 = require("./billing.service.js");
+const wave_service_js_1 = require("../wave/wave.service.js");
+const sms_service_js_1 = require("../sms/sms.service.js");
+const sms_rate_limiter_service_js_1 = require("../sms/sms-rate-limiter.service.js");
+const jwt_auth_guard_js_1 = require("../auth/jwt-auth.guard.js");
+const roles_decorator_js_1 = require("../auth/roles.decorator.js");
 const client_1 = require("@prisma/client");
-const calculate_share_dto_1 = require("./dto/calculate-share.dto");
-const create_billing_dto_1 = require("./dto/create-billing.dto");
-const pay_billing_dto_1 = require("./dto/pay-billing.dto");
-const validate_insurance_dto_1 = require("./dto/validate-insurance.dto");
-const send_wave_sms_dto_1 = require("./dto/send-wave-sms.dto");
+const calculate_share_dto_js_1 = require("./dto/calculate-share.dto.js");
+const create_billing_dto_js_1 = require("./dto/create-billing.dto.js");
+const pay_billing_dto_js_1 = require("./dto/pay-billing.dto.js");
+const validate_insurance_dto_js_1 = require("./dto/validate-insurance.dto.js");
+const send_wave_sms_dto_js_1 = require("./dto/send-wave-sms.dto.js");
 const swagger_1 = require("@nestjs/swagger");
+function getClientIp(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+        return (Array.isArray(forwarded) ? forwarded[0] : forwarded).split(',')[0].trim();
+    }
+    return req.ip || req.socket?.remoteAddress || '0.0.0.0';
+}
 let BillingController = class BillingController {
     billingService;
     waveService;
     smsService;
-    constructor(billingService, waveService, smsService) {
+    smsRateLimiter;
+    constructor(billingService, waveService, smsService, smsRateLimiter) {
         this.billingService = billingService;
         this.waveService = waveService;
         this.smsService = smsService;
+        this.smsRateLimiter = smsRateLimiter;
     }
     async findAll() {
         return this.billingService.findAll();
@@ -64,15 +74,16 @@ let BillingController = class BillingController {
             throw new common_1.NotFoundException('Facture introuvable');
         }
         const waveUrl = await this.waveService.createCheckoutSession(bill.patientShare, id);
-        if (!waveUrl) {
-            throw new common_1.BadRequestException('Impossible de générer le lien de paiement Wave');
-        }
         return { waveUrl };
     }
-    async sendWaveSms(id, body) {
+    async sendWaveSms(id, body, req) {
         const bill = await this.billingService.findOne(id);
         if (!bill) {
             throw new common_1.NotFoundException('Facture introuvable');
+        }
+        const rateLimitCheck = await this.smsRateLimiter.check(getClientIp(req), body.phone);
+        if (!rateLimitCheck.allowed) {
+            throw new common_1.HttpException(rateLimitCheck.reason ?? 'Trop de tentatives SMS. Réessayez plus tard.', common_1.HttpStatus.TOO_MANY_REQUESTS);
         }
         const message = `Bonjour, veuillez regler votre facture MedClinik de ${bill.patientShare} FCFA en cliquant sur ce lien sécurisé Wave: ${body.waveUrl}`;
         const success = await this.smsService.send(body.phone, message);
@@ -85,7 +96,7 @@ let BillingController = class BillingController {
 exports.BillingController = BillingController;
 __decorate([
     (0, common_1.Get)(),
-    (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, roles_decorator_js_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
     (0, swagger_1.ApiOperation)({ summary: 'Liste de toutes les factures' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Factures récupérées' }),
     __metadata("design:type", Function),
@@ -104,53 +115,55 @@ __decorate([
 ], BillingController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Post)('calculate-share'),
-    (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, roles_decorator_js_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
     (0, swagger_1.ApiOperation)({ summary: 'Calculer la répartition mutuelle / patient d\'un montant' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Calcul effectué' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [calculate_share_dto_1.CalculateShareDto]),
+    __metadata("design:paramtypes", [calculate_share_dto_js_1.CalculateShareDto]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "calculateShare", null);
 __decorate([
     (0, common_1.Post)(),
-    (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, roles_decorator_js_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
     (0, swagger_1.ApiOperation)({ summary: 'Créer une nouvelle facture et initialiser une consultation' }),
     (0, swagger_1.ApiResponse)({ status: 201, description: 'Facture créée avec succès' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_billing_dto_1.CreateBillingDto]),
+    __metadata("design:paramtypes", [create_billing_dto_js_1.CreateBillingDto]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "create", null);
 __decorate([
     (0, common_1.Post)('pay/:id'),
-    (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, roles_decorator_js_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
     (0, swagger_1.ApiOperation)({ summary: 'Enregistrer le règlement d\'une facture' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Facture réglée avec succès' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, pay_billing_dto_1.PayBillingDto, Object]),
+    __metadata("design:paramtypes", [String, pay_billing_dto_js_1.PayBillingDto, Object]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "pay", null);
 __decorate([
     (0, common_1.Post)('validate-insurance/:id'),
-    (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, roles_decorator_js_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
     (0, swagger_1.ApiOperation)({ summary: 'Valider manuellement la prise en charge assurance/mutuelle' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Assurance validée' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, validate_insurance_dto_1.ValidateInsuranceDto]),
+    __metadata("design:paramtypes", [String, validate_insurance_dto_js_1.ValidateInsuranceDto]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "validateInsurance", null);
 __decorate([
     (0, common_1.Post)('wave/checkout/:id'),
-    (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, roles_decorator_js_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
     (0, swagger_1.ApiOperation)({ summary: 'Créer un lien de paiement Wave Mobile Money' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Session Wave initialisée avec succès' }),
     (0, swagger_1.ApiResponse)({ status: 404, description: 'Facture introuvable' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Données invalides pour Wave' }),
+    (0, swagger_1.ApiResponse)({ status: 503, description: 'Service Wave indisponible' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -158,22 +171,25 @@ __decorate([
 ], BillingController.prototype, "createWaveCheckout", null);
 __decorate([
     (0, common_1.Post)('wave/send-sms/:id'),
-    (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, roles_decorator_js_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
     (0, swagger_1.ApiOperation)({ summary: 'Envoyer le lien de paiement Wave par SMS au patient' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'SMS envoyé avec succès' }),
+    (0, swagger_1.ApiResponse)({ status: 429, description: 'Quota SMS dépassé — réessayez dans quelques minutes' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, send_wave_sms_dto_1.SendWaveSmsDto]),
+    __metadata("design:paramtypes", [String, send_wave_sms_dto_js_1.SendWaveSmsDto, Object]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "sendWaveSms", null);
 exports.BillingController = BillingController = __decorate([
     (0, swagger_1.ApiTags)('Billing'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('billing'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __metadata("design:paramtypes", [billing_service_1.BillingService,
-        wave_service_1.WaveService,
-        sms_service_1.SmsService])
+    (0, common_1.UseGuards)(jwt_auth_guard_js_1.JwtAuthGuard),
+    __metadata("design:paramtypes", [billing_service_js_1.BillingService,
+        wave_service_js_1.WaveService,
+        sms_service_js_1.SmsService,
+        sms_rate_limiter_service_js_1.SmsRateLimiterService])
 ], BillingController);
 //# sourceMappingURL=billing.controller.js.map

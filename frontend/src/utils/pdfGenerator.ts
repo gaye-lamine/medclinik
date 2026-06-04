@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
 
 /**
  * Draws the MedClinik vector logo (cross + pulse line) onto a jsPDF document.
@@ -33,7 +34,7 @@ const drawLogo = (doc: jsPDF, x: number, y: number, size: number = 15) => {
 /**
  * Generates a clean A4 vector PDF for a patient prescription.
  */
-export const generatePrescriptionPDF = (
+export const generatePrescriptionPDF = async (
   prescription: {
     uniqueCode: string;
     createdAt: string;
@@ -210,23 +211,23 @@ export const generatePrescriptionPDF = (
   doc.text(`Identifiant de sécurité DMP : ${prescription.uniqueCode}`, 20, y + 10);
   doc.text('Ce document est un acte médical officiel crypté conforme à la réglementation des soins hospitaliers.', 20, y + 14);
 
-  // Secure QR Code mockup
-  doc.setDrawColor(180, 180, 180);
-  doc.setFillColor(250, 250, 250);
-  doc.rect(168, y + 3, 22, 22, 'FD');
-  
-  doc.setFont('Helvetica', 'bold');
-  doc.setFontSize(5);
-  doc.setTextColor(50, 50, 50);
-  doc.text('SECURE QR DMP', 170, y + 7);
-  
-  // Draw some block shapes inside the QR box to represent a real code
-  doc.setFillColor(0, 0, 0);
-  doc.rect(170, y + 9, 4, 4, 'F');
-  doc.rect(184, y + 9, 4, 4, 'F');
-  doc.rect(170, y + 19, 4, 4, 'F');
-  doc.rect(176, y + 13, 3, 3, 'F');
-  doc.rect(181, y + 16, 2, 2, 'F');
+  // Secure QR Code
+  try {
+    const qrText = `https://medclinic.lamine-gaye.tech/prescription/verify/${prescription.uniqueCode}`;
+    const qrDataUrl = await QRCode.toDataURL(qrText, {
+      margin: 1,
+      width: 150,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    });
+    doc.addImage(qrDataUrl, 'PNG', 168, y + 3, 22, 22);
+  } catch (err) {
+    console.error('Failed to generate QR Code', err);
+    doc.setDrawColor(180, 180, 180);
+    doc.rect(168, y + 3, 22, 22);
+  }
 
   // Trigger browser PDF save
   doc.save(`ordonnance_${prescription.uniqueCode}.pdf`);
@@ -235,7 +236,7 @@ export const generatePrescriptionPDF = (
 /**
  * Generates an 80mm cash receipt PDF (standard print roll size).
  */
-export const generateReceiptPDF = (
+export const generateReceiptPDF = async (
   bill: {
     id: string;
     createdAt: string;
@@ -255,11 +256,11 @@ export const generateReceiptPDF = (
   cashierName: string,
   formatFCFA: (amount: number) => string
 ) => {
-  // A typical thermal receipt width is 80mm. Let's create an 80x160mm document
+  // A typical thermal receipt width is 80mm. Let's create an 80x175mm document to fit the real QR code
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: [80, 165]
+    format: [80, 175]
   });
 
   doc.setFont('Courier', 'bold');
@@ -328,13 +329,28 @@ export const generateReceiptPDF = (
     doc.text(`Réf Transac: ${bill.transactionId.substring(0, 16)}`, 10, 130);
   }
 
-  doc.text('--------------------------------', 40, 135, { align: 'center' });
+  doc.text('--------------------------------', 40, 133, { align: 'center' });
   
-  // Barcode / QR Code simulation
-  doc.text('||||| | |||| ||| | || |||| | ||||| | ||', 40, 141, { align: 'center' });
+  // Real QR Code integration
+  try {
+    const method = bill.paymentMethod === 'WAVE' || bill.paymentMethod === 'MOBILE_MONEY_WAVE' ? 'Wave' : 'Especes';
+    const qrText = `MEDCLINIK SECURE RECEIPT\nID: ${bill.id}\nPatient: ${bill.patient.firstName} ${bill.patient.lastName}\nNet: ${bill.patientShare} FCFA\nMode: ${method}\nDate: ${new Date(bill.createdAt).toLocaleDateString('fr-FR')}`;
+    const qrDataUrl = await QRCode.toDataURL(qrText, {
+      margin: 1,
+      width: 150,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    });
+    doc.addImage(qrDataUrl, 'PNG', 30, 136, 20, 20);
+  } catch (err) {
+    console.error('Failed to generate Receipt QR Code', err);
+  }
+
   doc.setFontSize(7);
-  doc.text('Document électronique sécurisé', 40, 146, { align: 'center' });
-  doc.text('MedClinik ERP Caisse v1.0', 40, 150, { align: 'center' });
+  doc.text('Document électronique sécurisé', 40, 161, { align: 'center' });
+  doc.text('MedClinik ERP Caisse v1.0', 40, 165, { align: 'center' });
 
   doc.save(`facture_${bill.id.substring(0, 8)}.pdf`);
 };

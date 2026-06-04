@@ -1,16 +1,19 @@
-import { BillingService } from './billing.service';
-import { WaveService } from '../wave/wave.service';
-import { SmsService } from '../sms/sms.service';
-import { CalculateShareDto } from './dto/calculate-share.dto';
-import { CreateBillingDto } from './dto/create-billing.dto';
-import { PayBillingDto } from './dto/pay-billing.dto';
-import { ValidateInsuranceDto } from './dto/validate-insurance.dto';
-import { SendWaveSmsDto } from './dto/send-wave-sms.dto';
+import type { Request } from 'express';
+import { BillingService } from './billing.service.js';
+import { WaveService } from '../wave/wave.service.js';
+import { SmsService } from '../sms/sms.service.js';
+import { SmsRateLimiterService } from '../sms/sms-rate-limiter.service.js';
+import { CalculateShareDto } from './dto/calculate-share.dto.js';
+import { CreateBillingDto } from './dto/create-billing.dto.js';
+import { PayBillingDto } from './dto/pay-billing.dto.js';
+import { ValidateInsuranceDto } from './dto/validate-insurance.dto.js';
+import { SendWaveSmsDto } from './dto/send-wave-sms.dto.js';
 export declare class BillingController {
     private billingService;
     private waveService;
     private smsService;
-    constructor(billingService: BillingService, waveService: WaveService, smsService: SmsService);
+    private smsRateLimiter;
+    constructor(billingService: BillingService, waveService: WaveService, smsService: SmsService, smsRateLimiter: SmsRateLimiterService);
     findAll(): Promise<({
         patient: {
             id: string;
@@ -172,7 +175,7 @@ export declare class BillingController {
     createWaveCheckout(id: string): Promise<{
         waveUrl: string;
     }>;
-    sendWaveSms(id: string, body: SendWaveSmsDto): Promise<{
+    sendWaveSms(id: string, body: SendWaveSmsDto, req: Request): Promise<{
         success: boolean;
     }>;
 }

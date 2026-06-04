@@ -3,5 +3,7 @@ export declare class WaveService {
     private readonly baseUrl;
     private readonly apiKey;
     constructor();
-    createCheckoutSession(amount: number, billId: string): Promise<string | null>;
+    get isConfigured(): boolean;
+    createCheckoutSession(amount: number, billId: string): Promise<string>;
+    getSessionStatus(billId: string): Promise<string | null>;
 }
