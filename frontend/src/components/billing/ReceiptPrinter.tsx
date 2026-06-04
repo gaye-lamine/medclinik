@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bill } from '../../types/billing';
 import { Logo } from '../Logo';
+import { generateReceiptPDF } from '../../utils/pdfGenerator';
 
 interface ReceiptPrinterProps {
   bill: Bill;
@@ -137,9 +138,15 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
           </div>
         </div>
 
-        <div className="print-action-row no-print">
-          <button onClick={() => window.print()} className="btn btn-primary">
-            🖨️ Imprimer la facture
+        <div className="print-action-row no-print" style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={() => generateReceiptPDF(bill, cashierName, formatFCFA)}
+            className="btn btn-primary"
+          >
+            📥 Télécharger PDF
+          </button>
+          <button onClick={() => window.print()} className="btn btn-secondary">
+            🖨️ Imprimer
           </button>
         </div>
       </div>

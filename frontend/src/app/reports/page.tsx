@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../components/AuthContext';
 import { Logo } from '../../components/Logo';
+import { generateReportPDF } from '../../utils/pdfGenerator';
 
 interface FinancialItem {
   method: string;
@@ -154,9 +155,17 @@ export default function ReportsPage() {
           </p>
         </div>
 
-        <button onClick={handlePrint} className="btn btn-primary">
-          Imprimer le Rapport (PDF)
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={() => generateReportPDF(data, totalRevenueSum, formatFCFA)}
+            className="btn btn-primary"
+          >
+            📥 Télécharger PDF
+          </button>
+          <button onClick={handlePrint} className="btn btn-secondary">
+            🖨️ Imprimer
+          </button>
+        </div>
       </div>
 
       {/* Printable Document Header (visible only when printing) */}

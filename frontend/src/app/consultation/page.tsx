@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth, API_URL } from '../../components/AuthContext';
 import { useToast } from '../../components/ToastContext';
 import { Logo } from '../../components/Logo';
+import { generatePrescriptionPDF } from '../../utils/pdfGenerator';
 
 interface Patient {
   id: string;
@@ -578,9 +579,28 @@ export default function ConsultationPage() {
                       </div>
                     </div>
 
-                    <button onClick={() => window.print()} className="btn btn-secondary no-print" style={{ alignSelf: 'flex-end', fontSize: '0.8rem', marginTop: '1rem' }}>
-                      🖨️ Imprimer l'Ordonnance
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignSelf: 'flex-end', marginTop: '1rem' }} className="no-print">
+                      <button
+                        onClick={() => generatePrescriptionPDF(
+                          activePrescription,
+                          selectedConsult.doctor.name,
+                          selectedConsult.specialty,
+                          {
+                            firstName: selectedConsult.patient.firstName,
+                            lastName: selectedConsult.patient.lastName,
+                            code: selectedConsult.patient.code,
+                            gender: selectedConsult.patient.gender
+                          }
+                        )}
+                        className="btn btn-primary"
+                        style={{ fontSize: '0.8rem' }}
+                      >
+                        📥 Télécharger PDF
+                      </button>
+                      <button onClick={() => window.print()} className="btn btn-secondary" style={{ fontSize: '0.8rem' }}>
+                        🖨️ Imprimer
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
