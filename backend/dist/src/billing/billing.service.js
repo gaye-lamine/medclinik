@@ -84,7 +84,7 @@ let BillingService = class BillingService {
             where: { id },
             data: {
                 status: client_1.BillingStatus.PAID,
-                cashierId,
+                cashierId: cashierId || null,
                 paymentMethod,
                 transactionId,
             },

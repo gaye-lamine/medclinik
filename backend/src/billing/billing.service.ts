@@ -73,7 +73,7 @@ export class BillingService {
     return bill;
   }
 
-  async pay(id: string, cashierId: string, data: any) {
+  async pay(id: string, cashierId: string | null, data: any) {
     const { paymentMethod, transactionId } = data;
 
     const bill = await this.prisma.billing.findUnique({ where: { id } });
@@ -83,7 +83,7 @@ export class BillingService {
       where: { id },
       data: {
         status: BillingStatus.PAID,
-        cashierId,
+        cashierId: cashierId || null,
         paymentMethod,
         transactionId,
       },

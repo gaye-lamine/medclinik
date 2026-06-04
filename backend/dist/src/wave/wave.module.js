@@ -8,17 +8,17 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WaveModule = void 0;
 const common_1 = require("@nestjs/common");
-const wave_service_1 = require("./wave.service");
 const wave_controller_1 = require("./wave.controller");
-const billing_module_1 = require("../billing/billing.module");
+const wave_service_1 = require("./wave.service");
+const billing_module_js_1 = require("../billing/billing.module.js");
 let WaveModule = class WaveModule {
 };
 exports.WaveModule = WaveModule;
 exports.WaveModule = WaveModule = __decorate([
     (0, common_1.Module)({
-        imports: [billing_module_1.BillingModule],
-        providers: [wave_service_1.WaveService],
+        imports: [(0, common_1.forwardRef)(() => billing_module_js_1.BillingModule)],
         controllers: [wave_controller_1.WaveController],
+        providers: [wave_service_1.WaveService],
         exports: [wave_service_1.WaveService],
     })
 ], WaveModule);

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth, API_URL } from '../../components/AuthContext';
+import { useToast } from '../../components/ToastContext';
 
 interface Patient {
   id: string;
@@ -57,6 +58,7 @@ interface Consultation {
 
 export default function ConsultationPage() {
   const { user, apiFetch, token } = useAuth();
+  const { toast } = useToast();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [selectedConsult, setSelectedConsult] = useState<Consultation | null>(null);
   const [loading, setLoading] = useState(true);
@@ -160,7 +162,7 @@ export default function ConsultationPage() {
     const form = e.currentTarget;
     const fileInput = form.elements.namedItem('file') as HTMLInputElement;
     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-      alert('Veuillez sélectionner un fichier.');
+      toast.warning('Veuillez sélectionner un fichier.');
       return;
     }
     
@@ -188,10 +190,10 @@ export default function ConsultationPage() {
       setPatientFiles((prev) => [newFile, ...prev]);
       setFileCustomName('');
       form.reset();
-      alert('Fichier médical téléversé avec succès dans le DMP.');
+      toast.success('Fichier médical téléversé avec succès dans le DMP.');
     } catch (err: any) {
       console.error(err);
-      alert(err.message || 'Impossible de téléverser le fichier.');
+      toast.error(err.message || 'Impossible de téléverser le fichier.');
     } finally {
       setUploading(false);
     }
@@ -220,9 +222,10 @@ export default function ConsultationPage() {
         body: JSON.stringify({ medicines, instructions }),
       });
       setActivePrescription(rx);
-      alert('Ordonnance numérique signée avec succès.');
+      toast.success('Ordonnance numérique signée avec succès.');
     } catch (e: any) {
       setError(e.message || 'Erreur lors de la signature de l\'ordonnance');
+      toast.error(e.message || 'Erreur lors de la signature de l\'ordonnance');
     }
   };
 
@@ -238,9 +241,10 @@ export default function ConsultationPage() {
       });
       setSelectedConsult(null);
       fetchConsultations();
-      alert('Consultation médicale terminée et archivée dans le DMP.');
+      toast.success('Consultation médicale terminée et archivée dans le DMP.');
     } catch (e: any) {
       setError(e.message || 'Erreur lors de la validation clinique');
+      toast.error(e.message || 'Erreur lors de la validation clinique');
     }
   };
 

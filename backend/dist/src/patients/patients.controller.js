@@ -16,6 +16,8 @@ exports.PatientsController = void 0;
 const common_1 = require("@nestjs/common");
 const patients_service_1 = require("./patients.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+const create_patient_dto_1 = require("./dto/create-patient.dto");
+const swagger_1 = require("@nestjs/swagger");
 let PatientsController = class PatientsController {
     patientsService;
     constructor(patientsService) {
@@ -37,12 +39,16 @@ let PatientsController = class PatientsController {
 exports.PatientsController = PatientsController;
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Liste de tous les patients' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Liste récupérée avec succès' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], PatientsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)('search'),
+    (0, swagger_1.ApiOperation)({ summary: 'Recherche de patients' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Résultats de la recherche' }),
     __param(0, (0, common_1.Query)('q')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -50,6 +56,9 @@ __decorate([
 ], PatientsController.prototype, "search", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Détails d\'un patient' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Patient trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Patient introuvable' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -57,12 +66,17 @@ __decorate([
 ], PatientsController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Enregistrer un nouveau patient' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Patient enregistré avec succès' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Données d\'entrée invalides' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [create_patient_dto_1.CreatePatientDto]),
     __metadata("design:returntype", Promise)
 ], PatientsController.prototype, "create", null);
 exports.PatientsController = PatientsController = __decorate([
+    (0, swagger_1.ApiTags)('Patients'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('patients'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [patients_service_1.PatientsService])

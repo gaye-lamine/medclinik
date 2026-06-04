@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../components/AuthContext';
+import { useToast } from '../../components/ToastContext';
 
 interface StockItem {
   id: string;
@@ -15,6 +16,7 @@ interface StockItem {
 
 export default function StockPage() {
   const { user, apiFetch, token } = useAuth();
+  const { toast } = useToast();
   
   // Tabs management
   const [activeTab, setActiveTab] = useState<'inventory' | 'delivery'>('inventory');
@@ -88,7 +90,7 @@ export default function StockPage() {
         category: 'Médicaments',
       });
       fetchStock();
-      alert('Article de pharmacie ajouté avec succès.');
+      toast.success('Article de pharmacie ajouté avec succès.');
     } catch (e: any) {
       setError(e.message || 'Erreur lors de l\'ajout de l\'article.');
     } finally {
@@ -120,9 +122,10 @@ export default function StockPage() {
 
       setEditingItem(null);
       fetchStock();
-      alert('Stock mis à jour avec succès.');
+      toast.success('Stock mis à jour avec succès.');
     } catch (e: any) {
       setError(e.message || 'Erreur lors de la mise à jour du stock');
+      toast.error(e.message || 'Erreur lors de la mise à jour du stock');
     } finally {
       setIsSubmitting(false);
     }
@@ -153,7 +156,7 @@ export default function StockPage() {
       await apiFetch(`/stock/deliver/${searchedRx.id}`, {
         method: 'POST',
       });
-      alert('Ordonnance délivrée avec succès ! Stocks mis à jour et facturation pharmacie générée.');
+      toast.success('Ordonnance délivrée avec succès ! Stocks mis à jour et facturation pharmacie générée.');
       fetchStock();
       // Re-load prescription
       const updated = await apiFetch(`/stock/prescription/${searchedRx.uniqueCode}`);
@@ -161,6 +164,7 @@ export default function StockPage() {
     } catch (e: any) {
       console.error(e);
       setError(e.message || 'Erreur lors de la délivrance.');
+      toast.error(e.message || 'Erreur lors de la délivrance.');
     } finally {
       setDeliveringRx(false);
     }

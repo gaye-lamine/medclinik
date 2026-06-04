@@ -1,8 +1,9 @@
 import { VitalsService } from './vitals.service';
+import { CreateVitalsDto } from './dto/create-vitals.dto';
 export declare class VitalsController {
     private vitalsService;
     constructor(vitalsService: VitalsService);
-    create(body: any, req: any): Promise<{
+    create(body: CreateVitalsDto, req: any): Promise<{
         comments: string | null;
         id: string;
         createdAt: Date;

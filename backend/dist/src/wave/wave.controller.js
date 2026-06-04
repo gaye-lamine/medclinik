@@ -106,7 +106,7 @@ let WaveController = WaveController_1 = class WaveController {
             const billId = clientReference.replace('bill_', '');
             this.logger.log(`Webhook reçu pour la facture ${billId} : statut = ${paymentStatus}`);
             if (paymentStatus === 'succeeded') {
-                await this.billingService.pay(billId, 'SYSTEM_WAVE', {
+                await this.billingService.pay(billId, null, {
                     paymentMethod: 'MOBILE_MONEY_WAVE',
                     transactionId: transactionId,
                 });

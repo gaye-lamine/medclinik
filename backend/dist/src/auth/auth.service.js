@@ -71,6 +71,9 @@ let AuthService = AuthService_1 = class AuthService {
         }
         return null;
     }
+    async findUserByEmailForDemo(email) {
+        return this.prisma.user.findUnique({ where: { email } });
+    }
     async login(user) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const secret = process.env.JWT_SECRET || 'medclinik_secret_key_2026_super_secure';

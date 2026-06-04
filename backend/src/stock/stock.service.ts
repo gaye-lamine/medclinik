@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueGateway } from '../queue/queue.gateway';
+import { InventoryException } from '../common/exceptions/inventory.exception';
 
 @Injectable()
 export class StockService {
@@ -80,7 +81,7 @@ export class StockService {
     });
 
     if (!rx) throw new NotFoundException('Ordonnance introuvable');
-    if (rx.isDelivered) throw new BadRequestException('Cette ordonnance a déjà été délivrée.');
+    if (rx.isDelivered) throw new InventoryException('Cette ordonnance a déjà été délivrée.', 'INVENTORY_ALREADY_DELIVERED');
 
     // 1. Mark as delivered in database
     await this.prisma.prescription.update({

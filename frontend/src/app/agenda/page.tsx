@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../components/AuthContext';
+import { useToast } from '../../components/ToastContext';
 
 interface Patient {
   id: string;
@@ -31,6 +32,7 @@ interface Appointment {
 
 export default function AgendaPage() {
   const { user, apiFetch, token } = useAuth();
+  const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +115,7 @@ export default function AgendaPage() {
 
   const handleCellClick = (day: Date, hourStr: string) => {
     if (!(user?.role === 'ADMIN' || user?.role === 'NURSE' || user?.role === 'DOCTOR')) {
-      alert("Droits insuffisants pour planifier un rendez-vous.");
+      toast.error("Droits insuffisants pour planifier un rendez-vous.");
       return;
     }
     const [h, m] = hourStr.split(':');
@@ -145,7 +147,7 @@ export default function AgendaPage() {
   const handleBookAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPatient || !formDoctorId || !formDateTime) {
-      alert('Veuillez remplir tous les champs obligatoires.');
+      toast.warning('Veuillez remplir tous les champs obligatoires.');
       return;
     }
 
@@ -183,9 +185,10 @@ export default function AgendaPage() {
       });
       setSelectedApptDetail(null);
       fetchAgendaData();
+      toast.success('Statut du rendez-vous mis à jour.');
     } catch (e: any) {
       console.error(e);
-      alert('Erreur lors de la mise à jour du statut.');
+      toast.error('Erreur lors de la mise à jour du statut.');
     }
   };
 
@@ -196,10 +199,10 @@ export default function AgendaPage() {
       });
       setSelectedApptDetail(null);
       fetchAgendaData();
-      alert('Patient admis avec succès. Facture de consultation générée en caisse.');
+      toast.success('Patient admis avec succès. Facture de consultation générée en caisse.');
     } catch (e: any) {
       console.error(e);
-      alert(e.message || "Erreur lors de l'admission du patient.");
+      toast.error(e.message || "Erreur lors de l'admission du patient.");
     }
   };
 
@@ -211,9 +214,10 @@ export default function AgendaPage() {
       });
       setSelectedApptDetail(null);
       fetchAgendaData();
+      toast.success('Rendez-vous supprimé avec succès.');
     } catch (e: any) {
       console.error(e);
-      alert('Erreur lors de la suppression.');
+      toast.error('Erreur lors de la suppression.');
     }
   };
 

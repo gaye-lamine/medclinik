@@ -1,4 +1,6 @@
 import { StockService } from './stock.service';
+import { CreateStockDto } from './dto/create-stock.dto';
+import { UpdateStockDto } from './dto/update-stock.dto';
 export declare class StockController {
     private stockService;
     constructor(stockService: StockService);
@@ -22,7 +24,7 @@ export declare class StockController {
         criticalThreshold: number;
         category: string;
     }[]>;
-    create(body: any): Promise<{
+    create(body: CreateStockDto): Promise<{
         id: string;
         name: string;
         createdAt: Date;
@@ -32,7 +34,7 @@ export declare class StockController {
         criticalThreshold: number;
         category: string;
     }>;
-    update(id: string, body: any): Promise<{
+    update(id: string, body: UpdateStockDto): Promise<{
         id: string;
         name: string;
         createdAt: Date;

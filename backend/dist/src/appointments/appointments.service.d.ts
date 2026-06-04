@@ -18,14 +18,14 @@ export declare class AppointmentsService {
         };
     } & {
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
+        patientId: string;
+        status: string;
+        notes: string | null;
+        specialty: string;
+        doctorId: string;
+        dateTime: Date;
     })[]>;
     findOne(id: string): Promise<{
         patient: {
@@ -49,14 +49,14 @@ export declare class AppointmentsService {
         };
     } & {
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
+        patientId: string;
+        status: string;
+        notes: string | null;
+        specialty: string;
+        doctorId: string;
+        dateTime: Date;
     }>;
     findByDoctor(doctorId: string): Promise<({
         patient: {
@@ -67,14 +67,14 @@ export declare class AppointmentsService {
         };
     } & {
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
+        patientId: string;
+        status: string;
+        notes: string | null;
+        specialty: string;
+        doctorId: string;
+        dateTime: Date;
     })[]>;
     create(data: {
         patientId: string;
@@ -94,14 +94,14 @@ export declare class AppointmentsService {
         };
     } & {
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
+        patientId: string;
+        status: string;
+        notes: string | null;
+        specialty: string;
+        doctorId: string;
+        dateTime: Date;
     }>;
     update(id: string, data: {
         dateTime?: string;
@@ -120,25 +120,25 @@ export declare class AppointmentsService {
         };
     } & {
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
+        patientId: string;
+        status: string;
+        notes: string | null;
+        specialty: string;
+        doctorId: string;
+        dateTime: Date;
     }>;
     remove(id: string): Promise<{
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
+        patientId: string;
+        status: string;
+        notes: string | null;
+        specialty: string;
+        doctorId: string;
+        dateTime: Date;
     }>;
     admit(id: string, amount?: number): Promise<{
         appointment: {
@@ -155,24 +155,24 @@ export declare class AppointmentsService {
             };
         } & {
             id: string;
-            patientId: string;
-            doctorId: string;
-            dateTime: Date;
-            status: string;
-            specialty: string;
-            notes: string | null;
             createdAt: Date;
             updatedAt: Date;
+            patientId: string;
+            status: string;
+            notes: string | null;
+            specialty: string;
+            doctorId: string;
+            dateTime: Date;
         };
         bill: {
             id: string;
-            patientId: string;
-            status: import("@prisma/client").$Enums.BillingStatus;
             createdAt: Date;
             updatedAt: Date;
             mutuelleName: string | null;
             insuranceCoverageShare: number;
+            patientId: string;
             amount: number;
+            status: import("@prisma/client").$Enums.BillingStatus;
             paymentMethod: string | null;
             patientShare: number;
             insuranceShare: number;
@@ -183,14 +183,14 @@ export declare class AppointmentsService {
         };
         consultation: {
             id: string;
-            patientId: string;
-            doctorId: string;
-            status: import("@prisma/client").$Enums.ConsultationStatus;
-            specialty: string;
-            notes: string | null;
             createdAt: Date;
             updatedAt: Date;
+            patientId: string;
+            status: import("@prisma/client").$Enums.ConsultationStatus;
             diagnosis: string | null;
+            notes: string | null;
+            specialty: string;
+            doctorId: string;
             vitalsId: string | null;
             billingId: string | null;
         };

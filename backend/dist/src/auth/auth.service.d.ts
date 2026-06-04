@@ -1,6 +1,7 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { SmsService } from '../sms/sms.service';
+import { RegisterDto } from './dto/register.dto';
 export declare class AuthService {
     private prisma;
     private jwtService;
@@ -8,6 +9,17 @@ export declare class AuthService {
     private readonly logger;
     constructor(prisma: PrismaService, jwtService: JwtService, smsService: SmsService);
     validateUser(email: string, pass: string): Promise<any>;
+    findUserByEmailForDemo(email: string): Promise<{
+        id: string;
+        email: string;
+        password: string;
+        name: string;
+        role: import("@prisma/client").$Enums.Role;
+        phone: string | null;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    } | null>;
     login(user: any): Promise<{
         requires2fa: boolean;
         email: any;
@@ -23,7 +35,7 @@ export declare class AuthService {
             role: any;
         };
     }>;
-    register(data: any): Promise<{
+    register(data: RegisterDto): Promise<{
         id: string;
         email: string;
         name: string;

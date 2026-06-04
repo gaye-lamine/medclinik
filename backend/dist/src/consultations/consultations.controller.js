@@ -19,6 +19,9 @@ const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const billing_guard_1 = require("../billing/billing.guard");
 const roles_decorator_1 = require("../auth/roles.decorator");
 const client_1 = require("@prisma/client");
+const complete_consultation_dto_1 = require("./dto/complete-consultation.dto");
+const create_prescription_dto_1 = require("./dto/create-prescription.dto");
+const swagger_1 = require("@nestjs/swagger");
 let ConsultationsController = class ConsultationsController {
     consultationsService;
     constructor(consultationsService) {
@@ -43,6 +46,8 @@ let ConsultationsController = class ConsultationsController {
 exports.ConsultationsController = ConsultationsController;
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Liste de toutes les consultations' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Consultations récupérées' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
@@ -50,6 +55,10 @@ __decorate([
 __decorate([
     (0, common_1.Get)(':id'),
     (0, common_1.UseGuards)(billing_guard_1.BillingGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Détails d\'une consultation' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Détails de la consultation' }),
+    (0, swagger_1.ApiResponse)({ status: 403, description: 'Accès bloqué (facture impayée)' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Consultation introuvable' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -59,6 +68,8 @@ __decorate([
     (0, common_1.Post)('start/:id'),
     (0, roles_decorator_1.Roles)(client_1.Role.DOCTOR, client_1.Role.ADMIN),
     (0, common_1.UseGuards)(billing_guard_1.BillingGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Démarrer une consultation en cours' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Consultation démarrée' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -68,23 +79,29 @@ __decorate([
     (0, common_1.Post)('complete/:id'),
     (0, roles_decorator_1.Roles)(client_1.Role.DOCTOR, client_1.Role.ADMIN),
     (0, common_1.UseGuards)(billing_guard_1.BillingGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Clôturer une consultation avec diagnostic et notes' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Consultation clôturée' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, complete_consultation_dto_1.CompleteConsultationDto]),
     __metadata("design:returntype", Promise)
 ], ConsultationsController.prototype, "complete", null);
 __decorate([
     (0, common_1.Post)('prescription/:id'),
     (0, roles_decorator_1.Roles)(client_1.Role.DOCTOR, client_1.Role.ADMIN),
     (0, common_1.UseGuards)(billing_guard_1.BillingGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Créer une ordonnance sécurisée pour la consultation' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Ordonnance créée avec succès' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, create_prescription_dto_1.CreatePrescriptionDto]),
     __metadata("design:returntype", Promise)
 ], ConsultationsController.prototype, "createPrescription", null);
 exports.ConsultationsController = ConsultationsController = __decorate([
+    (0, swagger_1.ApiTags)('Consultations'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('consultations'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [consultations_service_1.ConsultationsService])

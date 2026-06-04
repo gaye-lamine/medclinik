@@ -18,6 +18,9 @@ const stock_service_1 = require("./stock.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const roles_decorator_1 = require("../auth/roles.decorator");
 const client_1 = require("@prisma/client");
+const create_stock_dto_1 = require("./dto/create-stock.dto");
+const update_stock_dto_1 = require("./dto/update-stock.dto");
+const swagger_1 = require("@nestjs/swagger");
 let StockController = class StockController {
     stockService;
     constructor(stockService) {
@@ -45,12 +48,16 @@ let StockController = class StockController {
 exports.StockController = StockController;
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Liste des articles en stock' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Stock récupéré' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], StockController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)('alerts'),
+    (0, swagger_1.ApiOperation)({ summary: 'Articles en alerte de stock bas' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Alertes de stock récupérées' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
@@ -58,22 +65,29 @@ __decorate([
 __decorate([
     (0, common_1.Post)(),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Ajouter un nouvel article en stock' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Article ajouté' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [create_stock_dto_1.CreateStockDto]),
     __metadata("design:returntype", Promise)
 ], StockController.prototype, "create", null);
 __decorate([
     (0, common_1.Put)('update/:id'),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.DOCTOR, client_1.Role.NURSE),
+    (0, swagger_1.ApiOperation)({ summary: 'Mettre à jour la quantité et le seuil critique d\'un article' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Article mis à jour' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, update_stock_dto_1.UpdateStockDto]),
     __metadata("design:returntype", Promise)
 ], StockController.prototype, "update", null);
 __decorate([
     (0, common_1.Get)('prescription/:code'),
+    (0, swagger_1.ApiOperation)({ summary: 'Rechercher une ordonnance par son code RX' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Ordonnance trouvée' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Ordonnance introuvable' }),
     __param(0, (0, common_1.Param)('code')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -81,12 +95,16 @@ __decorate([
 ], StockController.prototype, "findPrescriptionByCode", null);
 __decorate([
     (0, common_1.Post)('deliver/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Délivrer une ordonnance (déduit le stock et crée la facture pharmacie)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Ordonnance délivrée' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], StockController.prototype, "deliverPrescription", null);
 exports.StockController = StockController = __decorate([
+    (0, swagger_1.ApiTags)('Stock'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('stock'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [stock_service_1.StockService])

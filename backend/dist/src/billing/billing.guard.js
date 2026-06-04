@@ -13,6 +13,7 @@ exports.BillingGuard = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
+const clinical_rule_exception_1 = require("../common/exceptions/clinical-rule.exception");
 let BillingGuard = class BillingGuard {
     prisma;
     constructor(prisma) {
@@ -32,7 +33,7 @@ let BillingGuard = class BillingGuard {
             throw new common_1.NotFoundException('Consultation introuvable');
         }
         if (consultation.status === client_1.ConsultationStatus.PENDING) {
-            throw new common_1.ForbiddenException('Cette consultation n\'a pas encore été réglée à la caisse. Accès médical bloqué pour éviter les fuites financières.');
+            throw new clinical_rule_exception_1.ClinicalRuleException('Cette consultation n\'a pas encore été réglée à la caisse. Accès médical bloqué pour éviter les fuites financières.', 'CLINICAL_UNPAID_CONSULTATION');
         }
         return true;
     }

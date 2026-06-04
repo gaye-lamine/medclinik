@@ -13,6 +13,7 @@ exports.StockService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const queue_gateway_1 = require("../queue/queue.gateway");
+const inventory_exception_1 = require("../common/exceptions/inventory.exception");
 let StockService = class StockService {
     prisma;
     queueGateway;
@@ -87,7 +88,7 @@ let StockService = class StockService {
         if (!rx)
             throw new common_1.NotFoundException('Ordonnance introuvable');
         if (rx.isDelivered)
-            throw new common_1.BadRequestException('Cette ordonnance a déjà été délivrée.');
+            throw new inventory_exception_1.InventoryException('Cette ordonnance a déjà été délivrée.', 'INVENTORY_ALREADY_DELIVERED');
         await this.prisma.prescription.update({
             where: { id },
             data: { isDelivered: true },

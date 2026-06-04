@@ -1,54 +1,38 @@
 import { Module } from '@nestjs/common';
-import { SmsModule } from './sms/sms.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
-import { PatientsController } from './patients/patients.controller';
-import { PatientsService } from './patients/patients.service';
-import { QueueController } from './queue/queue.controller';
-import { QueueService } from './queue/queue.service';
-import { QueueGateway } from './queue/queue.gateway';
-import { VitalsController } from './vitals/vitals.controller';
-import { VitalsService } from './vitals/vitals.service';
-import { BillingController } from './billing/billing.controller';
-import { BillingService } from './billing/billing.service';
-import { ConsultationsController } from './consultations/consultations.controller';
-import { ConsultationsService } from './consultations/consultations.service';
-import { StockController } from './stock/stock.controller';
-import { StockService } from './stock/stock.service';
-import { ReportsController } from './reports/reports.controller';
-import { ReportsService } from './reports/reports.service';
+import { PatientsModule } from './patients/patients.module';
+import { QueueModule } from './queue/queue.module';
+import { VitalsModule } from './vitals/vitals.module';
+import { BillingModule } from './billing/billing.module';
+import { ConsultationsModule } from './consultations/consultations.module';
+import { StockModule } from './stock/stock.module';
+import { ReportsModule } from './reports/reports.module';
 import { AppointmentsModule } from './appointments/appointments.module';
-import { FilesController } from './files/files.controller';
-import { WaveController } from './wave/wave.controller';
-import { WaveService } from './wave/wave.service';
+import { SmsModule } from './sms/sms.module';
+import { FilesModule } from './files/files.module';
+import { WaveModule } from './wave/wave.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, AppointmentsModule, SmsModule],
-  controllers: [
-    AppController,
-    PatientsController,
-    QueueController,
-    VitalsController,
-    BillingController,
-    ConsultationsController,
-    StockController,
-    ReportsController,
-    FilesController,
-    WaveController,
+  imports: [
+    PrismaModule,
+    AuthModule,
+    SmsModule,
+    PatientsModule,
+    QueueModule,
+    VitalsModule,
+    BillingModule,
+    ConsultationsModule,
+    StockModule,
+    ReportsModule,
+    AppointmentsModule,
+    FilesModule,
+    WaveModule,
   ],
-  providers: [
-    AppService,
-    PatientsService,
-    QueueService,
-    QueueGateway,
-    VitalsService,
-    BillingService,
-    ConsultationsService,
-    StockService,
-    ReportsService,
-    WaveService,
-  ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
+

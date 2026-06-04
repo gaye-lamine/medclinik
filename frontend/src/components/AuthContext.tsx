@@ -37,13 +37,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const SEED_CREDENTIALS: Record<Role, { email: string; password: string }> = {
-  ADMIN: { email: 'admin@medclinik.com', password: 'admin123' },
-  DOCTOR: { email: 'doctor@medclinik.com', password: 'doctor123' },
-  NURSE: { email: 'nurse@medclinik.com', password: 'nurse123' },
-  CASHIER: { email: 'cashier@medclinik.com', password: 'cashier123' },
-};
-
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -104,16 +97,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const triggerRoleSwitch = async (role: Role) => {
     setError(null);
     try {
-      const credentials = SEED_CREDENTIALS[role];
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(`${API_URL}/auth/demo-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
+        body: JSON.stringify({ role }),
       });
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.message || 'Authentification échouée');
+        throw new Error(errData.message || 'Authentification démo échouée');
       }
 
       const data = await res.json();

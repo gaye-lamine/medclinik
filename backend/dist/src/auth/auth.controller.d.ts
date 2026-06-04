@@ -1,14 +1,18 @@
 import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
+import { Verify2faDto } from './dto/verify-2fa.dto';
+import { RegisterDto } from './dto/register.dto';
+import { DemoLoginDto } from './dto/demo-login.dto';
 export declare class AuthController {
     private authService;
     constructor(authService: AuthService);
-    login(body: any): Promise<{
+    login(body: LoginDto): Promise<{
         requires2fa: boolean;
         email: any;
         phone: any;
         tempToken: string;
     }>;
-    verify2fa(body: any): Promise<{
+    verify2fa(body: Verify2faDto): Promise<{
         accessToken: string;
         user: {
             id: any;
@@ -17,7 +21,13 @@ export declare class AuthController {
             role: any;
         };
     }>;
-    register(body: any): Promise<{
+    demoLogin(body: DemoLoginDto): Promise<{
+        requires2fa: boolean;
+        email: any;
+        phone: any;
+        tempToken: string;
+    }>;
+    register(body: RegisterDto): Promise<{
         id: string;
         email: string;
         name: string;

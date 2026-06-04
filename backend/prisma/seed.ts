@@ -41,6 +41,16 @@ async function main() {
     },
   });
 
+  const adminMain = await prisma.user.create({
+    data: {
+      email: 'lifesonou@gmail.com',
+      password: await bcrypt.hash('password123', saltRounds),
+      name: 'Administrateur Principal',
+      role: Role.ADMIN,
+      phone: '+221772238013',
+    },
+  });
+
   const doctor = await prisma.user.create({
     data: {
       email: 'doctor@medclinik.com',

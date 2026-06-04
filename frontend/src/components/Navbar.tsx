@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth, Role, ROLE_LABELS } from './AuthContext';
+import { useAuth, ROLE_LABELS } from './AuthContext';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -64,17 +64,14 @@ export const Navbar: React.FC = () => {
         Med<span>Clinik</span>
       </Link>
 
-      <nav style={styles.nav}>
+      <nav className="navbar-nav">
         {navLinks.map((link) => {
           const isActive = pathname === link.href;
           return (
             <Link
               key={link.href}
               href={link.href}
-              style={{
-                ...styles.link,
-                ...(isActive ? styles.activeLink : {}),
-              }}
+              className={`navbar-link ${isActive ? 'navbar-link-active' : ''}`}
             >
               {link.label}
             </Link>
@@ -82,10 +79,10 @@ export const Navbar: React.FC = () => {
         })}
       </nav>
 
-      <div style={styles.userContainer}>
-        <div style={styles.userInfo}>
-          <span style={styles.userName}>{user?.name}</span>
-          <span style={styles.userRole}>{getRoleLabel(user?.role)}</span>
+      <div className="navbar-user-container">
+        <div className="navbar-user-info">
+          <span className="navbar-user-name">{user?.name}</span>
+          <span className="navbar-user-role">{getRoleLabel(user?.role)}</span>
         </div>
         <button
           onClick={logout}
@@ -97,45 +94,4 @@ export const Navbar: React.FC = () => {
       </div>
     </header>
   );
-};
-
-const styles: Record<string, React.CSSProperties> = {
-  nav: {
-    display: 'flex',
-    gap: '1.25rem',
-    alignItems: 'center',
-  },
-  link: {
-    color: 'hsl(215, 20%, 75%)',
-    textDecoration: 'none',
-    fontSize: '0.9rem',
-    fontWeight: '500',
-    padding: '0.5rem 0.75rem',
-    borderRadius: '8px',
-    transition: 'all 0.2s ease',
-  },
-  activeLink: {
-    color: 'hsl(190, 85%, 45%)',
-    background: 'rgba(6, 182, 212, 0.08)',
-  },
-  userInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-  },
-  userName: {
-    fontSize: '0.85rem',
-    fontWeight: '600',
-    color: '#fff',
-  },
-  userContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-  },
-  userRole: {
-    fontSize: '0.75rem',
-    color: 'var(--text-muted)',
-    marginTop: '0.1rem',
-  },
 };

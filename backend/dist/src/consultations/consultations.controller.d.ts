@@ -1,4 +1,6 @@
 import { ConsultationsService } from './consultations.service';
+import { CompleteConsultationDto } from './dto/complete-consultation.dto';
+import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 export declare class ConsultationsController {
     private consultationsService;
     constructor(consultationsService: ConsultationsService);
@@ -161,7 +163,7 @@ export declare class ConsultationsController {
         vitalsId: string | null;
         billingId: string | null;
     }>;
-    complete(id: string, body: any): Promise<{
+    complete(id: string, body: CompleteConsultationDto): Promise<{
         patient: {
             id: string;
             createdAt: Date;
@@ -189,7 +191,7 @@ export declare class ConsultationsController {
         vitalsId: string | null;
         billingId: string | null;
     }>;
-    createPrescription(id: string, body: any): Promise<{
+    createPrescription(id: string, body: CreatePrescriptionDto): Promise<{
         id: string;
         createdAt: Date;
         uniqueCode: string;

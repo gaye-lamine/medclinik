@@ -1,4 +1,6 @@
 import { AppointmentsService } from './appointments.service';
+import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 export declare class AppointmentsController {
     private appointmentsService;
     constructor(appointmentsService: AppointmentsService);
@@ -16,14 +18,14 @@ export declare class AppointmentsController {
         };
     } & {
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
+        patientId: string;
+        status: string;
+        notes: string | null;
+        specialty: string;
+        doctorId: string;
+        dateTime: Date;
     })[]>;
     findByDoctor(doctorId: string): Promise<({
         patient: {
@@ -34,14 +36,14 @@ export declare class AppointmentsController {
         };
     } & {
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
+        patientId: string;
+        status: string;
+        notes: string | null;
+        specialty: string;
+        doctorId: string;
+        dateTime: Date;
     })[]>;
     findOne(id: string): Promise<{
         patient: {
@@ -65,22 +67,16 @@ export declare class AppointmentsController {
         };
     } & {
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
-    }>;
-    create(body: {
         patientId: string;
-        doctorId: string;
-        dateTime: string;
+        status: string;
+        notes: string | null;
         specialty: string;
-        notes?: string;
-    }): Promise<{
+        doctorId: string;
+        dateTime: Date;
+    }>;
+    create(body: CreateAppointmentDto): Promise<{
         patient: {
             id: string;
             firstName: string;
@@ -92,21 +88,16 @@ export declare class AppointmentsController {
         };
     } & {
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
+        patientId: string;
+        status: string;
+        notes: string | null;
+        specialty: string;
+        doctorId: string;
+        dateTime: Date;
     }>;
-    update(id: string, body: {
-        dateTime?: string;
-        status?: string;
-        specialty?: string;
-        notes?: string;
-    }): Promise<{
+    update(id: string, body: UpdateAppointmentDto): Promise<{
         patient: {
             id: string;
             firstName: string;
@@ -118,25 +109,25 @@ export declare class AppointmentsController {
         };
     } & {
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
+        patientId: string;
+        status: string;
+        notes: string | null;
+        specialty: string;
+        doctorId: string;
+        dateTime: Date;
     }>;
     remove(id: string): Promise<{
         id: string;
-        patientId: string;
-        doctorId: string;
-        dateTime: Date;
-        status: string;
-        specialty: string;
-        notes: string | null;
         createdAt: Date;
         updatedAt: Date;
+        patientId: string;
+        status: string;
+        notes: string | null;
+        specialty: string;
+        doctorId: string;
+        dateTime: Date;
     }>;
     admit(id: string): Promise<{
         appointment: {
@@ -153,24 +144,24 @@ export declare class AppointmentsController {
             };
         } & {
             id: string;
-            patientId: string;
-            doctorId: string;
-            dateTime: Date;
-            status: string;
-            specialty: string;
-            notes: string | null;
             createdAt: Date;
             updatedAt: Date;
+            patientId: string;
+            status: string;
+            notes: string | null;
+            specialty: string;
+            doctorId: string;
+            dateTime: Date;
         };
         bill: {
             id: string;
-            patientId: string;
-            status: import("@prisma/client").$Enums.BillingStatus;
             createdAt: Date;
             updatedAt: Date;
             mutuelleName: string | null;
             insuranceCoverageShare: number;
+            patientId: string;
             amount: number;
+            status: import("@prisma/client").$Enums.BillingStatus;
             paymentMethod: string | null;
             patientShare: number;
             insuranceShare: number;
@@ -181,14 +172,14 @@ export declare class AppointmentsController {
         };
         consultation: {
             id: string;
-            patientId: string;
-            doctorId: string;
-            status: import("@prisma/client").$Enums.ConsultationStatus;
-            specialty: string;
-            notes: string | null;
             createdAt: Date;
             updatedAt: Date;
+            patientId: string;
+            status: import("@prisma/client").$Enums.ConsultationStatus;
             diagnosis: string | null;
+            notes: string | null;
+            specialty: string;
+            doctorId: string;
             vitalsId: string | null;
             billingId: string | null;
         };

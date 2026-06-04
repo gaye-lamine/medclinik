@@ -27,13 +27,13 @@ export declare class QueueService {
         } | null;
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         patientId: string;
         status: import("@prisma/client").$Enums.QueueStatus;
         priority: string;
         department: import("@prisma/client").$Enums.QueueDepartment;
         assignedDoctorId: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     })[]>;
     register(data: any): Promise<{
         patient: {
@@ -52,13 +52,13 @@ export declare class QueueService {
         };
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         patientId: string;
         status: import("@prisma/client").$Enums.QueueStatus;
         priority: string;
         department: import("@prisma/client").$Enums.QueueDepartment;
         assignedDoctorId: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     call(id: string, doctorId?: string): Promise<{
         patient: {
@@ -77,13 +77,13 @@ export declare class QueueService {
         };
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         patientId: string;
         status: import("@prisma/client").$Enums.QueueStatus;
         priority: string;
         department: import("@prisma/client").$Enums.QueueDepartment;
         assignedDoctorId: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     start(id: string): Promise<{
         patient: {
@@ -102,13 +102,13 @@ export declare class QueueService {
         };
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         patientId: string;
         status: import("@prisma/client").$Enums.QueueStatus;
         priority: string;
         department: import("@prisma/client").$Enums.QueueDepartment;
         assignedDoctorId: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     finish(id: string): Promise<{
         success: boolean;

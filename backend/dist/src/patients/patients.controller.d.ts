@@ -1,4 +1,5 @@
 import { PatientsService } from './patients.service';
+import { CreatePatientDto } from './dto/create-patient.dto';
 export declare class PatientsController {
     private patientsService;
     constructor(patientsService: PatientsService);
@@ -101,7 +102,7 @@ export declare class PatientsController {
         mutuelleName: string | null;
         insuranceCoverageShare: number;
     }) | null>;
-    create(body: any): Promise<{
+    create(body: CreatePatientDto): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;

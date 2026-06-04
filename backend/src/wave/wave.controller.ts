@@ -80,9 +80,8 @@ export class WaveController {
 
       if (paymentStatus === 'succeeded') {
         // Enregistrer le paiement dans la base de données
-        // L'utilisateur 'WaveSystem' ou on passe null pour le cashier car c'est automatique
-        // Mais billingService.pay attend un cashierId. On passera 'SYSTEM_WAVE'
-        await this.billingService.pay(billId, 'SYSTEM_WAVE', {
+        // Le paiement via webhook est automatique (pas de caissier humain), on passe donc null.
+        await this.billingService.pay(billId, null, {
           paymentMethod: 'MOBILE_MONEY_WAVE',
           transactionId: transactionId,
         });

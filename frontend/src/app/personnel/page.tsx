@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth, ROLE_LABELS } from '../../components/AuthContext';
+import { useToast } from '../../components/ToastContext';
 
 interface StaffUser {
   id: string;
@@ -15,6 +16,7 @@ interface StaffUser {
 
 export default function PersonnelPage() {
   const { user, apiFetch, token } = useAuth();
+  const { toast } = useToast();
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export default function PersonnelPage() {
 
   const handleDelete = async (id: string, name: string) => {
     if (id === user?.id) {
-      alert('Erreur : Vous ne pouvez pas supprimer votre propre compte.');
+      toast.error('Erreur : Vous ne pouvez pas supprimer votre propre compte.');
       return;
     }
     if (!window.confirm(`Êtes-vous sûr de vouloir supprimer le compte de ${name} ?`)) {
@@ -64,9 +66,10 @@ export default function PersonnelPage() {
       setError(null);
       await apiFetch(`/auth/users/${id}`, { method: 'DELETE' });
       fetchStaff();
-      alert('Collaborateur supprimé avec succès.');
+      toast.success('Collaborateur supprimé avec succès.');
     } catch (e: any) {
       setError(e.message || 'Erreur lors de la suppression du collaborateur.');
+      toast.error(e.message || 'Erreur lors de la suppression du collaborateur.');
     }
   };
 
@@ -90,9 +93,10 @@ export default function PersonnelPage() {
         phone: '',
       });
       fetchStaff();
-      alert('Collaborateur enregistré avec succès.');
+      toast.success('Collaborateur enregistré avec succès.');
     } catch (e: any) {
       setError(e.message || 'Erreur lors de l\'enregistrement.');
+      toast.error(e.message || 'Erreur lors de l\'enregistrement.');
     } finally {
       setIsSubmitting(false);
     }

@@ -20,6 +20,12 @@ const sms_service_1 = require("../sms/sms.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const roles_decorator_1 = require("../auth/roles.decorator");
 const client_1 = require("@prisma/client");
+const calculate_share_dto_1 = require("./dto/calculate-share.dto");
+const create_billing_dto_1 = require("./dto/create-billing.dto");
+const pay_billing_dto_1 = require("./dto/pay-billing.dto");
+const validate_insurance_dto_1 = require("./dto/validate-insurance.dto");
+const send_wave_sms_dto_1 = require("./dto/send-wave-sms.dto");
+const swagger_1 = require("@nestjs/swagger");
 let BillingController = class BillingController {
     billingService;
     waveService;
@@ -33,10 +39,14 @@ let BillingController = class BillingController {
         return this.billingService.findAll();
     }
     async findOne(id) {
-        return this.billingService.findOne(id);
+        const bill = await this.billingService.findOne(id);
+        if (!bill) {
+            throw new common_1.NotFoundException('Facture introuvable');
+        }
+        return bill;
     }
     async calculateShare(body) {
-        return this.billingService.calculateShare(body.patientId, parseFloat(body.amount));
+        return this.billingService.calculateShare(body.patientId, body.amount);
     }
     async create(body) {
         return this.billingService.create(body);
@@ -51,23 +61,23 @@ let BillingController = class BillingController {
     async createWaveCheckout(id) {
         const bill = await this.billingService.findOne(id);
         if (!bill) {
-            throw new Error('Facture introuvable');
+            throw new common_1.NotFoundException('Facture introuvable');
         }
         const waveUrl = await this.waveService.createCheckoutSession(bill.patientShare, id);
         if (!waveUrl) {
-            throw new Error('Impossible de générer le lien Wave');
+            throw new common_1.BadRequestException('Impossible de générer le lien de paiement Wave');
         }
         return { waveUrl };
     }
     async sendWaveSms(id, body) {
         const bill = await this.billingService.findOne(id);
         if (!bill) {
-            throw new Error('Facture introuvable');
+            throw new common_1.NotFoundException('Facture introuvable');
         }
         const message = `Bonjour, veuillez regler votre facture MedClinik de ${bill.patientShare} FCFA en cliquant sur ce lien sécurisé Wave: ${body.waveUrl}`;
         const success = await this.smsService.send(body.phone, message);
         if (!success) {
-            throw new Error("L'envoi du SMS a échoué.");
+            throw new common_1.BadRequestException("L'envoi du SMS de facturation a échoué.");
         }
         return { success: true };
     }
@@ -76,12 +86,17 @@ exports.BillingController = BillingController;
 __decorate([
     (0, common_1.Get)(),
     (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Liste de toutes les factures' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Factures récupérées' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Détails d\'une facture' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Facture trouvée' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Facture introuvable' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -90,41 +105,52 @@ __decorate([
 __decorate([
     (0, common_1.Post)('calculate-share'),
     (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Calculer la répartition mutuelle / patient d\'un montant' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Calcul effectué' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [calculate_share_dto_1.CalculateShareDto]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "calculateShare", null);
 __decorate([
     (0, common_1.Post)(),
     (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Créer une nouvelle facture et initialiser une consultation' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Facture créée avec succès' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [create_billing_dto_1.CreateBillingDto]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "create", null);
 __decorate([
     (0, common_1.Post)('pay/:id'),
     (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Enregistrer le règlement d\'une facture' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Facture réglée avec succès' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:paramtypes", [String, pay_billing_dto_1.PayBillingDto, Object]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "pay", null);
 __decorate([
     (0, common_1.Post)('validate-insurance/:id'),
     (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Valider manuellement la prise en charge assurance/mutuelle' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Assurance validée' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, validate_insurance_dto_1.ValidateInsuranceDto]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "validateInsurance", null);
 __decorate([
     (0, common_1.Post)('wave/checkout/:id'),
     (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Créer un lien de paiement Wave Mobile Money' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Session Wave initialisée avec succès' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Facture introuvable' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -133,13 +159,17 @@ __decorate([
 __decorate([
     (0, common_1.Post)('wave/send-sms/:id'),
     (0, roles_decorator_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Envoyer le lien de paiement Wave par SMS au patient' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'SMS envoyé avec succès' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, send_wave_sms_dto_1.SendWaveSmsDto]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "sendWaveSms", null);
 exports.BillingController = BillingController = __decorate([
+    (0, swagger_1.ApiTags)('Billing'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('billing'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [billing_service_1.BillingService,

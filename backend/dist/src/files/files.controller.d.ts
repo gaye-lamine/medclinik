@@ -3,9 +3,9 @@ export declare class FilesController {
     private prisma;
     constructor(prisma: PrismaService);
     uploadFile(patientId: string, file: any, consultationId?: string, customName?: string): Promise<{
-        url: string;
         id: string;
         name: string;
+        url: string;
         patientId: string;
         consultationId: string | null;
         type: string;
@@ -13,9 +13,9 @@ export declare class FilesController {
         uploadedAt: Date;
     }>;
     getFiles(patientId: string): Promise<{
-        url: string;
         id: string;
         name: string;
+        url: string;
         patientId: string;
         consultationId: string | null;
         type: string;

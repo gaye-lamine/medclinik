@@ -1,6 +1,7 @@
-import { CanActivate, ExecutionContext, Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConsultationStatus } from '@prisma/client';
+import { ClinicalRuleException } from '../common/exceptions/clinical-rule.exception';
 
 @Injectable()
 export class BillingGuard implements CanActivate {
@@ -25,8 +26,9 @@ export class BillingGuard implements CanActivate {
 
     // Anti-Fraud check: The consultation is locked if it is in PENDING state (no paid bill)
     if (consultation.status === ConsultationStatus.PENDING) {
-      throw new ForbiddenException(
-        'Cette consultation n\'a pas encore été réglée à la caisse. Accès médical bloqué pour éviter les fuites financières.'
+      throw new ClinicalRuleException(
+        'Cette consultation n\'a pas encore été réglée à la caisse. Accès médical bloqué pour éviter les fuites financières.',
+        'CLINICAL_UNPAID_CONSULTATION',
       );
     }
 

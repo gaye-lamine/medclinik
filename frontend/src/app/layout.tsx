@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '../components/AuthContext';
 import { AppLayout } from '../components/AppLayout';
 import { OTPModal } from '../components/OTPModal';
+import { ToastProvider } from '../components/ToastContext';
 
 export const metadata: Metadata = {
   title: 'MedClinik - Système de Gestion ERP Médical',
@@ -18,10 +19,12 @@ export default function RootLayout({
     <html lang="fr">
       <body>
         <AuthProvider>
-          <AppLayout>
-            {children}
-          </AppLayout>
-          <OTPModal />
+          <ToastProvider>
+            <AppLayout>
+              {children}
+            </AppLayout>
+            <OTPModal />
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

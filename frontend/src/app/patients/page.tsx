@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../components/AuthContext';
+import { useToast } from '../../components/ToastContext';
 
 interface Patient {
   id: string;
@@ -19,6 +20,7 @@ interface Patient {
 
 export default function PatientsPage() {
   const { apiFetch, token } = useAuth();
+  const { toast } = useToast();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -87,9 +89,10 @@ export default function PatientsPage() {
         insuranceCoverageShare: '0',
       });
       fetchPatients(searchQuery);
-      alert('Dossier médical patient créé avec succès.');
+      toast.success('Dossier médical patient créé avec succès.');
     } catch (e: any) {
       setError(e.message || 'Erreur lors de la création du dossier patient.');
+      toast.error(e.message || 'Erreur lors de la création du dossier patient.');
     } finally {
       setIsSubmitting(false);
     }
