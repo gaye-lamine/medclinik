@@ -2,7 +2,6 @@ import { Controller, Post, Get, Param, Req, Res, Headers, Logger, UseGuards } fr
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import * as crypto from 'crypto';
-import { BillingStatus } from '@prisma/client';
 import { BillingService } from '../billing/billing.service.js';
 import { WaveService } from './wave.service.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
@@ -71,15 +70,24 @@ export class WaveController {
       return res.status(500).json({ success: false, message: 'Server configuration error' });
     }
 
-    // ── 2. Vérifier la présence du rawBody ──────────────────────────────
-    if (!req.rawBody) {
-      this.logger.error('rawBody manquant — impossible de vérifier la signature.');
-      return res.status(400).json({ success: false, message: 'Missing raw body' });
+    // ── 2. Récupérer le body brut ────────────────────────────────────────
+    // Priorité : req.rawBody (NestJS rawBody:true) → fallback body re-sérialisé
+    // Wave exige le body exactement tel que reçu (espaces, ordre des clés préservés)
+    let rawBodyBuffer: Buffer;
+    if (req.rawBody && req.rawBody.length > 0) {
+      rawBodyBuffer = req.rawBody;
+    } else {
+      // Fallback : re-sérialiser le body parsé (moins fiable, logué comme warning)
+      this.logger.warn('rawBody vide — utilisation du body parsé comme fallback (peut causer échec signature)');
+      rawBodyBuffer = Buffer.from(JSON.stringify(req.body), 'utf8');
     }
 
+    this.logger.log(`Webhook Wave reçu — rawBody length: ${rawBodyBuffer.length}, signature: ${waveSignature?.substring(0, 50)}`);
+
     // ── 3. Vérifier la signature HMAC SHA-256 ───────────────────────────
-    if (!this.verifySignature(secret, waveSignature, req.rawBody)) {
-      this.logger.warn(`Signature Webhook Wave invalide — signature reçue : ${waveSignature?.substring(0, 30)}...`);
+    if (!this.verifySignature(secret, waveSignature, rawBodyBuffer)) {
+      this.logger.warn(`Signature Webhook Wave invalide — signature reçue : ${waveSignature}`);
+      this.logger.warn(`Secret utilisé (premiers 20 chars) : ${secret.substring(0, 20)}...`);
       return res.status(401).json({ success: false, message: 'Invalid signature' });
     }
 
@@ -169,42 +177,65 @@ export class WaveController {
 
   /**
    * Vérifie la signature HMAC SHA-256 envoyée par Wave.
-   * Format attendu du header : "t=<timestamp>,v1=<hmac_hex>"
+   *
+   * Format header : "t=<unix_timestamp>,v1=<hmac_hex>"
+   * Payload signé : timestamp + rawBody (concaténation string, sans séparateur)
+   * Référence     : https://docs.wave.com/webhook
    */
   private verifySignature(secret: string, signature: string, rawBody: Buffer): boolean {
     try {
       if (!signature?.includes('t=') || !signature?.includes('v1=')) {
+        this.logger.warn('Header Wave-Signature absent ou malformé');
         return false;
       }
 
+      // Extraire timestamp et signature(s) v1
+      // Format : "t=1639081943,v1=<hex64>"  (plusieurs v1= possibles lors d'une rotation de clé)
       const parts = signature.split(',');
       const timestampPart = parts.find((p) => p.startsWith('t='));
       const signatureValues = parts
         .filter((p) => p.startsWith('v1='))
-        .map((p) => p.split('=')[1]);
+        .map((p) => p.substring(3)); // substring(3) pour éviter split('=') qui casse si '=' dans la valeur
 
       if (!timestampPart || signatureValues.length === 0) {
+        this.logger.warn('Impossible d\'extraire timestamp ou v1 du header Wave-Signature');
         return false;
       }
 
-      const timestamp = timestampPart.split('=')[1];
+      const timestamp = timestampPart.substring(2); // "t=<val>" → "<val>"
 
-      // ── Protection contre le replay attack : timestamp < 5 minutes ────
+      // ── Protection replay attack : timestamp < 5 minutes ────────────
       const tsAge = Date.now() - parseInt(timestamp, 10) * 1000;
       if (tsAge > 5 * 60 * 1000) {
         this.logger.warn(`Webhook Wave rejeté : timestamp trop ancien (${Math.round(tsAge / 1000)}s)`);
         return false;
       }
 
-      const payload = Buffer.concat([Buffer.from(timestamp, 'utf8'), rawBody]);
-      const hmac = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+      // ── Calcul HMAC : payload = timestamp + rawBody (string concat) ──
+      // Exactement comme la référence PHP Wave :
+      //   hash_hmac("sha256", $timestamp . $webhook_body, $wave_webhook_secret)
+      const rawBodyString = rawBody.toString('utf8');
+      const payloadToSign = timestamp + rawBodyString;
+      const hmac = crypto
+        .createHmac('sha256', secret)
+        .update(payloadToSign, 'utf8')
+        .digest('hex');
 
-      return signatureValues.some((sig) =>
-        crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(hmac, 'hex')),
-      );
+      this.logger.log(`HMAC calculé (premiers 16 chars) : ${hmac.substring(0, 16)}...`);
+
+      // Comparaison en temps constant contre chaque v1= (support rotation de clé)
+      const hmacBuffer = Buffer.from(hmac, 'hex');
+      return signatureValues.some((sig) => {
+        try {
+          const sigBuffer = Buffer.from(sig, 'hex');
+          if (sigBuffer.length !== hmacBuffer.length) return false;
+          return crypto.timingSafeEqual(sigBuffer, hmacBuffer);
+        } catch {
+          return false;
+        }
+      });
     } catch (e: any) {
       this.logger.error(`Erreur vérification signature Wave : ${e.message}`);
       return false;
     }
   }
-}

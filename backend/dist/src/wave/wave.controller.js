@@ -81,12 +81,18 @@ let WaveController = WaveController_1 = class WaveController {
             this.logger.error('WAVE_WEBHOOK_SECRET non configuré — webhook rejeté.');
             return res.status(500).json({ success: false, message: 'Server configuration error' });
         }
-        if (!req.rawBody) {
-            this.logger.error('rawBody manquant — impossible de vérifier la signature.');
-            return res.status(400).json({ success: false, message: 'Missing raw body' });
+        let rawBodyBuffer;
+        if (req.rawBody && req.rawBody.length > 0) {
+            rawBodyBuffer = req.rawBody;
         }
-        if (!this.verifySignature(secret, waveSignature, req.rawBody)) {
-            this.logger.warn(`Signature Webhook Wave invalide — signature reçue : ${waveSignature?.substring(0, 30)}...`);
+        else {
+            this.logger.warn('rawBody vide — utilisation du body parsé comme fallback (peut causer échec signature)');
+            rawBodyBuffer = Buffer.from(JSON.stringify(req.body), 'utf8');
+        }
+        this.logger.log(`Webhook Wave reçu — rawBody length: ${rawBodyBuffer.length}, signature: ${waveSignature?.substring(0, 50)}`);
+        if (!this.verifySignature(secret, waveSignature, rawBodyBuffer)) {
+            this.logger.warn(`Signature Webhook Wave invalide — signature reçue : ${waveSignature}`);
+            this.logger.warn(`Secret utilisé (premiers 20 chars) : ${secret.substring(0, 20)}...`);
             return res.status(401).json({ success: false, message: 'Invalid signature' });
         }
         res.status(200).json({ success: true, message: 'Webhook reçu' });
@@ -143,25 +149,43 @@ let WaveController = WaveController_1 = class WaveController {
     verifySignature(secret, signature, rawBody) {
         try {
             if (!signature?.includes('t=') || !signature?.includes('v1=')) {
+                this.logger.warn('Header Wave-Signature absent ou malformé');
                 return false;
             }
             const parts = signature.split(',');
             const timestampPart = parts.find((p) => p.startsWith('t='));
             const signatureValues = parts
                 .filter((p) => p.startsWith('v1='))
-                .map((p) => p.split('=')[1]);
+                .map((p) => p.substring(3));
             if (!timestampPart || signatureValues.length === 0) {
+                this.logger.warn('Impossible d\'extraire timestamp ou v1 du header Wave-Signature');
                 return false;
             }
-            const timestamp = timestampPart.split('=')[1];
+            const timestamp = timestampPart.substring(2);
             const tsAge = Date.now() - parseInt(timestamp, 10) * 1000;
             if (tsAge > 5 * 60 * 1000) {
                 this.logger.warn(`Webhook Wave rejeté : timestamp trop ancien (${Math.round(tsAge / 1000)}s)`);
                 return false;
             }
-            const payload = Buffer.concat([Buffer.from(timestamp, 'utf8'), rawBody]);
-            const hmac = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-            return signatureValues.some((sig) => crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(hmac, 'hex')));
+            const rawBodyString = rawBody.toString('utf8');
+            const payloadToSign = timestamp + rawBodyString;
+            const hmac = crypto
+                .createHmac('sha256', secret)
+                .update(payloadToSign, 'utf8')
+                .digest('hex');
+            this.logger.log(`HMAC calculé (premiers 16 chars) : ${hmac.substring(0, 16)}...`);
+            const hmacBuffer = Buffer.from(hmac, 'hex');
+            return signatureValues.some((sig) => {
+                try {
+                    const sigBuffer = Buffer.from(sig, 'hex');
+                    if (sigBuffer.length !== hmacBuffer.length)
+                        return false;
+                    return crypto.timingSafeEqual(sigBuffer, hmacBuffer);
+                }
+                catch {
+                    return false;
+                }
+            });
         }
         catch (e) {
             this.logger.error(`Erreur vérification signature Wave : ${e.message}`);
