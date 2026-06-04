@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bill } from '../../types/billing';
 import { Logo } from '../Logo';
 import { generateReceiptPDF } from '../../utils/pdfGenerator';
+import QRCode from 'qrcode';
 
 interface ReceiptPrinterProps {
   bill: Bill;
@@ -16,6 +17,15 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
   onClose,
   formatFCFA,
 }) => {
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const method = bill.paymentMethod === 'WAVE' || bill.paymentMethod === 'MOBILE_MONEY_WAVE' ? 'Wave' : 'Especes';
+    const qrText = `MEDCLINIK SECURE RECEIPT\nID: ${bill.id}\nPatient: ${bill.patient?.firstName || ''} ${bill.patient?.lastName || ''}\nNet: ${bill.patientShare} FCFA\nMode: ${method}\nDate: ${new Date(bill.createdAt).toLocaleDateString('fr-FR')}`;
+    QRCode.toDataURL(qrText, { margin: 1, width: 100 })
+      .then((url) => setQrUrl(url))
+      .catch(console.error);
+  }, [bill]);
   return (
     <div className="modal-overlay">
       <div className="glass-card animate-slide-up receipt-modal">
@@ -131,7 +141,11 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
 
             <div className="qr-block">
               <div className="mock-barcode">||||| | |||| ||| | || |||| | ||||| | ||</div>
-              <div className="mock-qrcode">QR SECURE</div>
+              {qrUrl ? (
+                <img src={qrUrl} alt="QR Code" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
+              ) : (
+                <div className="mock-qrcode">QR SECURE</div>
+              )}
             </div>
 
             <p className="footer-cert">Document électronique certifié conforme. Système anti-fraude MedClinik.</p>
@@ -168,6 +182,8 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
         .receipt-modal {
           max-width: 480px;
           width: 90%;
+          max-height: 90vh;
+          overflow-y: auto;
           padding: 1.5rem;
           border-radius: 16px;
           display: flex;
@@ -176,6 +192,20 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
           background: rgba(10, 15, 30, 0.9);
           border: 1px solid rgba(255, 255, 255, 0.08);
           box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+        .receipt-modal::-webkit-scrollbar {
+          width: 6px;
+        }
+        .receipt-modal::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.02);
+          border-radius: 8px;
+        }
+        .receipt-modal::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+        }
+        .receipt-modal::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.2);
         }
         .receipt-header {
           display: flex;
