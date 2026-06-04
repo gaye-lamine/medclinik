@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth, API_URL } from '../../components/AuthContext';
+
+// Préfixe REST pour les appels HTTP directs (les URLs /uploads utilisent API_URL)
+const API_REST_URL = `${API_URL}/api`;
 import { useToast } from '../../components/ToastContext';
 import { Logo } from '../../components/Logo';
 import { generatePrescriptionPDF } from '../../utils/pdfGenerator';
@@ -176,7 +179,7 @@ export default function ConsultationPage() {
 
     try {
       setUploading(true);
-      const response = await fetch(`${API_URL}/files/patient/${selectedConsult.patientId}`, {
+      const response = await fetch(`${API_REST_URL}/files/patient/${selectedConsult.patientId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

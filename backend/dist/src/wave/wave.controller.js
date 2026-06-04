@@ -96,18 +96,26 @@ let WaveController = WaveController_1 = class WaveController {
             const paymentData = body?.data ?? {};
             const clientReference = paymentData?.client_reference ?? '';
             const paymentStatus = paymentData?.payment_status ?? '';
-            const transactionId = paymentData?.transaction_id;
+            const transactionId = paymentData?.transaction_id ?? paymentData?.id;
             this.logger.log(`Webhook Wave reçu — type: ${eventType}, statut: ${paymentStatus}, ref: ${clientReference}`);
             if (!clientReference.startsWith('bill_')) {
                 this.logger.warn(`Référence inconnue ignorée : ${clientReference}`);
                 return;
             }
             const billId = clientReference.replace('bill_', '');
-            if (paymentStatus === 'succeeded') {
+            const isSuccess = eventType === 'checkout.session.completed' ||
+                paymentStatus === 'succeeded';
+            const isFailure = eventType === 'checkout.session.payment_failed' ||
+                paymentStatus === 'failed' ||
+                paymentStatus === 'cancelled';
+            if (isSuccess) {
                 await this.processBillPayment(billId, transactionId);
             }
-            else if (paymentStatus === 'failed' || paymentStatus === 'cancelled') {
-                this.logger.warn(`Paiement Wave ${paymentStatus} pour facture ${billId}`);
+            else if (isFailure) {
+                this.logger.warn(`Paiement Wave échoué/annulé pour facture ${billId} (type: ${eventType}, statut: ${paymentStatus})`);
+            }
+            else {
+                this.logger.log(`Événement Wave ignoré (non actionnable) — type: ${eventType}, statut: ${paymentStatus}`);
             }
         }
         catch (error) {

@@ -10,7 +10,14 @@ import * as fs from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
-  
+
+  // Préfixe global /api pour tous les endpoints REST
+  // Le webhook Wave, les fichiers statiques (/uploads) et Socket.io
+  // ne passent pas par ce préfixe car ils sont gérés séparément.
+  app.setGlobalPrefix('api', {
+    exclude: ['/uploads/(.*)'],
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -35,7 +42,7 @@ async function bootstrap() {
   // Serve static files
   app.use('/uploads', express.static(uploadsDir));
 
-  // Configurer Swagger
+  // Configurer Swagger (accessible sur /api/docs grâce au global prefix)
   const config = new DocumentBuilder()
     .setTitle('MedClinik API')
     .setDescription('Documentation de l\'API MedClinik')
@@ -43,7 +50,7 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('docs', app, document);
 
   const port = process.env.PORT || 3006;
   await app.listen(port, '0.0.0.0');

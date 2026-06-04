@@ -88,6 +88,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
 
+// Préfixe REST : tous les appels HTTP vers le backend passent par /api
+// (WebSocket et fichiers statiques /uploads utilisent API_URL directement)
+const API_REST_URL = `${API_URL}/api`;
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -114,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(`${API_REST_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -155,7 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const triggerRoleSwitch = async (role: Role) => {
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/auth/demo-login`, {
+      const res = await fetch(`${API_REST_URL}/auth/demo-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role }),
@@ -187,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const submitOtp = async (code: string): Promise<boolean> => {
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/auth/verify-2fa`, {
+      const res = await fetch(`${API_REST_URL}/auth/verify-2fa`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempToken, code }),
@@ -230,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let res: Response;
     try {
-      res = await fetch(`${API_URL}${path}`, { ...options, headers });
+      res = await fetch(`${API_REST_URL}${path}`, { ...options, headers });
     } catch (networkError: unknown) {
       // Erreur réseau (serveur hors-ligne, CORS preflight bloqué, etc.)
       throw new Error(parseApiError(networkError, 'Impossible de joindre le serveur.'));

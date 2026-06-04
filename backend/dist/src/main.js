@@ -44,6 +44,9 @@ const path_1 = require("path");
 const fs = __importStar(require("fs"));
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule, { rawBody: true });
+    app.setGlobalPrefix('api', {
+        exclude: ['/uploads/(.*)'],
+    });
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,
@@ -67,7 +70,7 @@ async function bootstrap() {
         .addBearerAuth()
         .build();
     const document = swagger_1.SwaggerModule.createDocument(app, config);
-    swagger_1.SwaggerModule.setup('api/docs', app, document);
+    swagger_1.SwaggerModule.setup('docs', app, document);
     const port = process.env.PORT || 3006;
     await app.listen(port, '0.0.0.0');
     console.log(`Application MedClinik lancée sur le port : ${port}`);

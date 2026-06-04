@@ -17,8 +17,6 @@ export declare class BillingController {
     findAll(): Promise<({
         patient: {
             id: string;
-            mutuelleName: string | null;
-            insuranceCoverageShare: number;
             createdAt: Date;
             updatedAt: Date;
             code: string;
@@ -28,32 +26,32 @@ export declare class BillingController {
             gender: string;
             phoneNumber: string;
             address: string | null;
+            mutuelleName: string | null;
+            insuranceCoverageShare: number;
         };
         cashier: {
             name: string;
         } | null;
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        mutuelleName: string | null;
+        insuranceCoverageShare: number;
         patientId: string;
-        cashierId: string | null;
         amount: number;
         status: import("@prisma/client").$Enums.BillingStatus;
         paymentMethod: string | null;
-        mutuelleName: string | null;
-        insuranceCoverageShare: number;
         patientShare: number;
         insuranceShare: number;
         transactionId: string | null;
         insuranceValidated: boolean;
         insuranceAuthCode: string | null;
-        createdAt: Date;
-        updatedAt: Date;
+        cashierId: string | null;
     })[]>;
     findOne(id: string): Promise<{
         patient: {
             id: string;
-            mutuelleName: string | null;
-            insuranceCoverageShare: number;
             createdAt: Date;
             updatedAt: Date;
             code: string;
@@ -63,26 +61,28 @@ export declare class BillingController {
             gender: string;
             phoneNumber: string;
             address: string | null;
+            mutuelleName: string | null;
+            insuranceCoverageShare: number;
         };
         cashier: {
             name: string;
         } | null;
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        mutuelleName: string | null;
+        insuranceCoverageShare: number;
         patientId: string;
-        cashierId: string | null;
         amount: number;
         status: import("@prisma/client").$Enums.BillingStatus;
         paymentMethod: string | null;
-        mutuelleName: string | null;
-        insuranceCoverageShare: number;
         patientShare: number;
         insuranceShare: number;
         transactionId: string | null;
         insuranceValidated: boolean;
         insuranceAuthCode: string | null;
-        createdAt: Date;
-        updatedAt: Date;
+        cashierId: string | null;
     }>;
     calculateShare(body: CalculateShareDto): Promise<{
         amount: number;
@@ -94,8 +94,6 @@ export declare class BillingController {
     create(body: CreateBillingDto): Promise<{
         patient: {
             id: string;
-            mutuelleName: string | null;
-            insuranceCoverageShare: number;
             createdAt: Date;
             updatedAt: Date;
             code: string;
@@ -105,29 +103,29 @@ export declare class BillingController {
             gender: string;
             phoneNumber: string;
             address: string | null;
+            mutuelleName: string | null;
+            insuranceCoverageShare: number;
         };
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        mutuelleName: string | null;
+        insuranceCoverageShare: number;
         patientId: string;
-        cashierId: string | null;
         amount: number;
         status: import("@prisma/client").$Enums.BillingStatus;
         paymentMethod: string | null;
-        mutuelleName: string | null;
-        insuranceCoverageShare: number;
         patientShare: number;
         insuranceShare: number;
         transactionId: string | null;
         insuranceValidated: boolean;
         insuranceAuthCode: string | null;
-        createdAt: Date;
-        updatedAt: Date;
+        cashierId: string | null;
     }>;
     pay(id: string, body: PayBillingDto, req: any): Promise<{
         patient: {
             id: string;
-            mutuelleName: string | null;
-            insuranceCoverageShare: number;
             createdAt: Date;
             updatedAt: Date;
             code: string;
@@ -137,32 +135,32 @@ export declare class BillingController {
             gender: string;
             phoneNumber: string;
             address: string | null;
+            mutuelleName: string | null;
+            insuranceCoverageShare: number;
         };
         cashier: {
             name: string;
         } | null;
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        mutuelleName: string | null;
+        insuranceCoverageShare: number;
         patientId: string;
-        cashierId: string | null;
         amount: number;
         status: import("@prisma/client").$Enums.BillingStatus;
         paymentMethod: string | null;
-        mutuelleName: string | null;
-        insuranceCoverageShare: number;
         patientShare: number;
         insuranceShare: number;
         transactionId: string | null;
         insuranceValidated: boolean;
         insuranceAuthCode: string | null;
-        createdAt: Date;
-        updatedAt: Date;
+        cashierId: string | null;
     }>;
     validateInsurance(id: string, body: ValidateInsuranceDto): Promise<{
         patient: {
             id: string;
-            mutuelleName: string | null;
-            insuranceCoverageShare: number;
             createdAt: Date;
             updatedAt: Date;
             code: string;
@@ -172,23 +170,25 @@ export declare class BillingController {
             gender: string;
             phoneNumber: string;
             address: string | null;
+            mutuelleName: string | null;
+            insuranceCoverageShare: number;
         };
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        mutuelleName: string | null;
+        insuranceCoverageShare: number;
         patientId: string;
-        cashierId: string | null;
         amount: number;
         status: import("@prisma/client").$Enums.BillingStatus;
         paymentMethod: string | null;
-        mutuelleName: string | null;
-        insuranceCoverageShare: number;
         patientShare: number;
         insuranceShare: number;
         transactionId: string | null;
         insuranceValidated: boolean;
         insuranceAuthCode: string | null;
-        createdAt: Date;
-        updatedAt: Date;
+        cashierId: string | null;
     }>;
     createWaveCheckout(id: string): Promise<{
         waveUrl: string;
