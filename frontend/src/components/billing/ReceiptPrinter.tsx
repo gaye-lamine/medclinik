@@ -238,13 +238,19 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
           color: #fff;
         }
         .receipt-sheet {
-          background-color: #ffffff;
-          color: #000000;
+          background-color: #ffffff !important;
+          background: #ffffff !important;
+          color: #000000 !important;
           padding: 2rem 1.75rem;
           border-radius: 12px;
           font-family: 'Courier New', Courier, monospace;
           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
           border: 1px solid #ddd;
+        }
+        .receipt-sheet * {
+          color: #000000 !important;
+          background-color: transparent !important;
+          background: transparent !important;
         }
         .receipt-clinic-header {
           display: flex;
@@ -279,8 +285,9 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
           margin: 0;
         }
         .receipt-divider {
-          border-top: 1px dashed #000;
+          border-top: 1px dashed #000 !important;
           margin: 1.25rem 0;
+          height: 0;
         }
         .receipt-details-list {
           display: flex;
@@ -391,7 +398,8 @@ export const ReceiptPrinter: React.FC<ReceiptPrinterProps> = ({
           height: 80px;
           border: 1px solid #000;
           padding: 2px;
-          background: #fff;
+          background-color: #ffffff !important;
+          background: #ffffff !important;
         }
         .qr-caption {
           font-size: 0.6rem;
