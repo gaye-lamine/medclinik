@@ -48,7 +48,7 @@ export const LandingPage: React.FC = () => {
           <div style={styles.heroContent} className="animate-slide-up">
             <div style={styles.badgeWrapper}>
               <span className="badge badge-paid" style={styles.heroBadge}>
-                ✨ Nouveau : Wave Pay &amp; SMS OTP 2FA Intégrés
+                Nouveau : Wave Pay &amp; SMS OTP 2FA Intégrés
               </span>
             </div>
             
