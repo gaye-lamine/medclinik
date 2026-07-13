@@ -11,14 +11,20 @@ services:
       - "traefik.http.routers.medclinik.rule=Host(`medclinik.backnd-api.cloud`)"
       - "traefik.http.routers.medclinik.tls.certresolver=letsencrypt"
       - "traefik.http.services.medclinik.loadbalancer.server.port=3006"
-      # ─── Middleware CORS Traefik ───────────────────────────────────────────
-      - "traefik.http.routers.medclinik.middlewares=medclinik-cors@docker"
+      # ─── WebSocket : activer le passthrough des connexions Upgrade ────────
+      - "traefik.http.services.medclinik.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.medclinik.loadbalancer.sticky.cookie.name=medclinik_sticky"
+      # ─── Middlewares : CORS + headers WebSocket ───────────────────────────
+      - "traefik.http.routers.medclinik.middlewares=medclinik-cors@docker,medclinik-ws@docker"
+      # CORS
       - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolallowmethods=GET,POST,PUT,PATCH,DELETE,OPTIONS"
       - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolallowheaders=Authorization,Content-Type,Accept,X-Requested-With"
       - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolalloworiginlist=https://medclinic.lamine-gaye.tech,http://localhost:3000,http://localhost:3005"
       - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolallowcredentials=true"
       - "traefik.http.middlewares.medclinik-cors.headers.accesscontrolmaxage=86400"
       - "traefik.http.middlewares.medclinik-cors.headers.addvaryheader=true"
+      # Headers WebSocket (Upgrade/Connection transmis au backend)
+      - "traefik.http.middlewares.medclinik-ws.headers.customrequestheaders.X-Forwarded-Proto=https"
     ports:
       - "3010:3006"
     env_file:

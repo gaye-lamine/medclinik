@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth, API_URL } from '../../components/AuthContext';
+import QRCode from 'qrcode';
 
 // Préfixe REST pour les appels HTTP directs (les URLs /uploads utilisent API_URL)
 const API_REST_URL = `${API_URL}/api`;
@@ -88,6 +89,19 @@ export default function ConsultationPage() {
   const [medDuration, setMedDuration] = useState('');
   const [instructions, setInstructions] = useState('');
   const [activePrescription, setActivePrescription] = useState<Prescription | null>(null);
+  const [rxQrUrl, setRxQrUrl] = useState<string | null>(null);
+
+  // Générer le QR code quand une ordonnance est active
+  useEffect(() => {
+    if (activePrescription) {
+      const qrText = `MEDCLINIK DMP\nRx: ${activePrescription.uniqueCode}\nDate: ${new Date(activePrescription.createdAt).toLocaleDateString('fr-FR')}`;
+      QRCode.toDataURL(qrText, { margin: 1, width: 80, color: { dark: '#000000', light: '#ffffff' } })
+        .then(setRxQrUrl)
+        .catch(console.error);
+    } else {
+      setRxQrUrl(null);
+    }
+  }, [activePrescription]);
 
   const fetchConsultations = useCallback(async () => {
     try {
