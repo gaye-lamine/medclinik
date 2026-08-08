@@ -38,6 +38,8 @@ enum QueueStatus {
 enum QueueDepartment {
   VITALS
   CONSULTATION
+  /// Département caisse : patient orienté ici après sa consultation, en attente de règlement.
+  CASHIER
 }
 
 model User {
@@ -119,6 +121,8 @@ model Billing {
   insuranceValidated     Boolean        @default(false)
   insuranceAuthCode      String?
   refundReason           String?
+  appointmentId          String?        // Lien optionnel vers le RDV source (traçabilité)
+  appointment            Appointment?   @relation("AppointmentBillings", fields: [appointmentId], references: [id], onDelete: SetNull)
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
 
@@ -139,7 +143,11 @@ model Consultation {
   diagnosis      String?
   notes          String?
   specialty      String             @default("General") // General, Pediatrics, Gynecology, etc.
+  /// Flux de statut : PENDING → PAID (via billing.pay) → IN_PROGRESS (via start) → COMPLETED (via complete)
+  /// IMPORTANT : seul billing.service.ts::pay() peut écrire le statut PAID.
   status         ConsultationStatus @default(PENDING)
+  appointmentId  String?            // Lien optionnel vers le RDV source (traçabilité)
+  appointment    Appointment?       @relation("AppointmentConsultations", fields: [appointmentId], references: [id], onDelete: SetNull)
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -195,6 +203,10 @@ model Appointment {
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relations inverses
+  consultations Consultation[] @relation("AppointmentConsultations")
+  billings      Billing[]      @relation("AppointmentBillings")
 }
 
 model PatientFile {
@@ -208,4 +220,20 @@ model PatientFile {
   type           String        // e.g. DICOM, JPEG, PDF
   size           Int
   uploadedAt     DateTime      @default(now())
+}
+
+/// Journal d'audit pour les actions sensibles (paiements, remboursements, suppressions).
+/// userId peut être null pour les actions système (webhooks, cron, etc.).
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  // L'utilisateur qui a déclenché l'action
+  action     String   // PAY, REFUND, CANCEL, DELETE, ADMIT
+  entityType String   // Billing, Appointment, QueueEntry, User, Consultation
+  entityId   String
+  details    Json?    // Snapshot des données pertinentes
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
 }

@@ -16,6 +16,7 @@ import { AppointmentsModule } from './appointments/appointments.module.js';
 import { SmsModule } from './sms/sms.module.js';
 import { FilesModule } from './files/files.module.js';
 import { WaveModule } from './wave/wave.module.js';
+import { AuditModule } from './audit/audit.module.js';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { WaveModule } from './wave/wave.module.js';
     AppointmentsModule,
     FilesModule,
     WaveModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [

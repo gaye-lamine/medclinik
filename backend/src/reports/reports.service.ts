@@ -86,10 +86,28 @@ export class ReportsService {
         insuranceShareSum,
         bedOccupancy,
         criticalStockCount,
+        // M2 — Taux de no-show réel basé sur les statuts Appointment
+        ...(await this.getNoShowStats()),
       },
       pathologies,
       doctorStats,
     };
+  }
+
+  /**
+   * M2 — Calcul du taux de no-show réel.
+   * Un no-show = Appointment avec status NO_SHOW ou CANCELLED (patient absent).
+   * Taux = (NO_SHOW + CANCELLED) / (SCHEDULED + COMPLETED + NO_SHOW + CANCELLED)
+   */
+  async getNoShowStats() {
+    const [total, noShow, cancelled] = await Promise.all([
+      this.prisma.appointment.count(),
+      this.prisma.appointment.count({ where: { status: 'NO_SHOW' } }),
+      this.prisma.appointment.count({ where: { status: 'CANCELLED' } }),
+    ]);
+    const noShowCount = noShow + cancelled;
+    const noShowRate = total > 0 ? Math.round((noShowCount / total) * 100) : 0;
+    return { noShowCount, noShowRate };
   }
 
   async getAdvancedReports() {

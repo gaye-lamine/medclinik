@@ -1,13 +1,16 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueGateway } from '../queue/queue.gateway';
-import { BillingStatus, ConsultationStatus, Prisma } from '@prisma/client';
+import { BillingStatus, ConsultationStatus, Prisma, QueueDepartment } from '@prisma/client';
+import { AuditService } from '../audit/audit.service';
+import { calculateInsuranceShare } from '../utils/billing.utils';
 
 @Injectable()
 export class BillingService {
   constructor(
     private prisma: PrismaService,
     private queueGateway: QueueGateway,
+    private auditService: AuditService,
   ) {}
 
   async findAll() {
@@ -24,20 +27,19 @@ export class BillingService {
     });
   }
 
+  /**
+   * M3 — Calcul tiers-payant : délégué à calculateInsuranceShare() de billing.utils.ts.
+   * Source unique de vérité partagée avec AppointmentsService.admit().
+   */
   async calculateShare(patientId: string, amount: number) {
     const patient = await this.prisma.patient.findUnique({ where: { id: patientId } });
     if (!patient) throw new NotFoundException('Patient introuvable');
 
-    const coverage = patient.insuranceCoverageShare || 0;
-    const insuranceShare = (amount * coverage) / 100;
-    const patientShare = amount - insuranceShare;
+    const share = calculateInsuranceShare(amount, patient.insuranceCoverageShare || 0);
 
     return {
-      amount,
+      ...share,
       mutuelleName: patient.mutuelleName,
-      insuranceCoverageShare: coverage,
-      patientShare,
-      insuranceShare,
     };
   }
 
@@ -141,33 +143,42 @@ export class BillingService {
               include: { patient: true, cashier: { select: { name: true } } },
             });
 
-            // 5. Débloquer la consultation uniquement en cas de paiement intégral
+            // 5. M1 + M7 — Actions post-paiement
             if (isFullyPaid) {
+              // M1 : Transition Consultation PAID → seul point d'entrée autorisé
               await tx.consultation.updateMany({
                 where: { billingId: id },
                 data: { status: ConsultationStatus.PAID },
               });
 
-              const hasQueueEntry = await tx.queueEntry.findFirst({
-                where: { patientId: bill.patientId },
+              // M7 : Paiement total → supprimer l'entrée file caisse
+              const cashierEntry = await tx.queueEntry.findFirst({
+                where: { patientId: bill.patientId, department: QueueDepartment.CASHIER },
               });
-
-              if (!hasQueueEntry) {
-                await tx.queueEntry.create({
-                  data: {
-                    patientId: bill.patientId,
-                    department: 'VITALS',
-                    status: 'IN_QUEUE',
-                    priority: 'NORMAL',
-                  },
-                });
+              if (cashierEntry) {
+                await tx.queueEntry.delete({ where: { id: cashierEntry.id } });
               }
             }
+            // M7 : PARTIALLY_PAID → le patient reste en file CASHIER pour compléter son règlement
 
             return updated;
           },
           { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
+
+        // M6 — Journal d'audit (hors transaction pour ne pas bloquer)
+        await this.auditService.log({
+          userId: cashierId ?? undefined,
+          action: 'PAY',
+          entityType: 'Billing',
+          entityId: id,
+          details: {
+            paymentMethod,
+            transactionId,
+            amountPaid,
+            finalStatus: updatedBill.status,
+          },
+        });
 
         // Succès : diffuser la mise à jour et retourner
         this.queueGateway.broadcastQueueUpdate();
@@ -206,7 +217,7 @@ export class BillingService {
    * Réservé aux factures ayant déjà fait l'objet d'un règlement.
    */
   async refund(id: string, cashierId: string | null, reason: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       const bill = await tx.billing.findUnique({ where: { id } });
       if (!bill) throw new NotFoundException('Facture introuvable');
 
@@ -214,7 +225,7 @@ export class BillingService {
         throw new BadRequestException(`Seules les factures réglées ou partiellement réglées peuvent être remboursées. Statut actuel : ${bill.status}`);
       }
 
-      const updated = await tx.billing.update({
+      const result = await tx.billing.update({
         where: { id },
         data: {
           status: BillingStatus.REFUNDED,
@@ -231,8 +242,19 @@ export class BillingService {
       });
 
       this.queueGateway.broadcastQueueUpdate();
-      return updated;
+      return result;
     });
+
+    // M6 — Journal d'audit
+    await this.auditService.log({
+      userId: cashierId ?? undefined,
+      action: 'REFUND',
+      entityType: 'Billing',
+      entityId: id,
+      details: { reason },
+    });
+
+    return updated;
   }
 
   /**
@@ -240,7 +262,7 @@ export class BillingService {
    * Réservé aux factures en attente de paiement.
    */
   async cancel(id: string, cashierId: string | null, reason: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       const bill = await tx.billing.findUnique({ where: { id } });
       if (!bill) throw new NotFoundException('Facture introuvable');
 
@@ -248,7 +270,7 @@ export class BillingService {
         throw new BadRequestException(`Seules les factures impayées peuvent être annulées. Statut actuel : ${bill.status}`);
       }
 
-      const updated = await tx.billing.update({
+      const result = await tx.billing.update({
         where: { id },
         data: {
           status: BillingStatus.CANCELLED,
@@ -259,8 +281,19 @@ export class BillingService {
       });
 
       this.queueGateway.broadcastQueueUpdate();
-      return updated;
+      return result;
     });
+
+    // M6 — Journal d'audit
+    await this.auditService.log({
+      userId: cashierId ?? undefined,
+      action: 'CANCEL',
+      entityType: 'Billing',
+      entityId: id,
+      details: { reason },
+    });
+
+    return updated;
   }
 
   async validateInsurance(id: string, data: { mutuelleName: string; coverageShare: number }) {
