@@ -17,6 +17,7 @@ import { SmsModule } from './sms/sms.module.js';
 import { FilesModule } from './files/files.module.js';
 import { WaveModule } from './wave/wave.module.js';
 import { AuditModule } from './audit/audit.module.js';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { AuditModule } from './audit/audit.module.js';
     FilesModule,
     WaveModule,
     AuditModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [

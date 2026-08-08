@@ -1,28 +1,24 @@
-import { Injectable, NotFoundException, ConflictException, OnModuleInit } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
 import { AuditService } from '../audit/audit.service';
 import { calculateInsuranceShare } from '../utils/billing.utils';
 
 @Injectable()
-export class AppointmentsService implements OnModuleInit {
+export class AppointmentsService {
   constructor(
     private prisma: PrismaService,
     private smsService: SmsService,
     private auditService: AuditService,
   ) {}
 
-  onModuleInit() {
-    // Vérification automatique des rendez-vous expirés toutes les 15 minutes
-    setInterval(() => {
-      this.markExpiredAppointmentsAsNoShow().catch(() => {});
-    }, 15 * 60_000);
-  }
-
   /**
+   * Tâche planifiée exécutée toutes les 15 minutes via le décorateur Cron.
    * Marque automatiquement comme NO_SHOW les rendez-vous en statut SCHEDULED
    * dont l'heure est dépassée de X minutes (défaut : 60 min, configurable via NO_SHOW_THRESHOLD_MINUTES).
    */
+  @Cron('*/15 * * * *')
   async markExpiredAppointmentsAsNoShow() {
     const thresholdMinutes = parseInt(process.env.NO_SHOW_THRESHOLD_MINUTES || '60', 10);
     const cutoff = new Date(Date.now() - thresholdMinutes * 60_000);
