@@ -47,10 +47,26 @@ export class PatientsService {
   }
 
   async create(data: any) {
+    // Détection de doublons potentiels (téléphone OU nom + prénom + date de naissance)
+    const possibleDuplicate = await this.prisma.patient.findFirst({
+      where: {
+        OR: [
+          { phoneNumber: data.phoneNumber },
+          {
+            AND: [
+              { firstName: { equals: data.firstName, mode: 'insensitive' } },
+              { lastName: { equals: data.lastName, mode: 'insensitive' } },
+              { dateOfBirth: new Date(data.dateOfBirth) },
+            ],
+          },
+        ],
+      },
+    });
+
     // Generate consecutive PAT-XXXX code
     const count = await this.prisma.patient.count();
     const code = `PAT-${String(count + 1).padStart(4, '0')}`;
-    return this.prisma.patient.create({
+    const created = await this.prisma.patient.create({
       data: {
         code,
         firstName: data.firstName,
@@ -63,5 +79,14 @@ export class PatientsService {
         insuranceCoverageShare: parseFloat(data.insuranceCoverageShare || 0),
       },
     });
+
+    if (possibleDuplicate) {
+      return {
+        ...created,
+        warning: `Attention : Un patient similaire existe déjà avec le code ${possibleDuplicate.code} (${possibleDuplicate.firstName} ${possibleDuplicate.lastName}).`,
+      };
+    }
+
+    return created;
   }
 }

@@ -1,16 +1,42 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
 import { AuditService } from '../audit/audit.service';
 import { calculateInsuranceShare } from '../utils/billing.utils';
 
 @Injectable()
-export class AppointmentsService {
+export class AppointmentsService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private smsService: SmsService,
     private auditService: AuditService,
   ) {}
+
+  onModuleInit() {
+    // Vérification automatique des rendez-vous expirés toutes les 15 minutes
+    setInterval(() => {
+      this.markExpiredAppointmentsAsNoShow().catch(() => {});
+    }, 15 * 60_000);
+  }
+
+  /**
+   * Marque automatiquement comme NO_SHOW les rendez-vous en statut SCHEDULED
+   * dont l'heure est dépassée de X minutes (défaut : 60 min, configurable via NO_SHOW_THRESHOLD_MINUTES).
+   */
+  async markExpiredAppointmentsAsNoShow() {
+    const thresholdMinutes = parseInt(process.env.NO_SHOW_THRESHOLD_MINUTES || '60', 10);
+    const cutoff = new Date(Date.now() - thresholdMinutes * 60_000);
+
+    return this.prisma.appointment.updateMany({
+      where: {
+        status: 'SCHEDULED',
+        dateTime: { lt: cutoff },
+      },
+      data: {
+        status: 'NO_SHOW',
+      },
+    });
+  }
 
   async findAll() {
     return this.prisma.appointment.findMany({
@@ -56,8 +82,6 @@ export class AppointmentsService {
     const start = new Date(data.dateTime);
 
     // M5 — Anti-double-booking : détection d'overlap bidirectionnel
-    // Un RDV existant chevauche le nouveau si son heure de début tombe dans
-    // la fenêtre [start - DURATION, start + DURATION).
     const DURATION_MS =
       parseInt(process.env.CONSULTATION_DURATION_MINUTES || '30', 10) * 60_000;
 
@@ -66,8 +90,8 @@ export class AppointmentsService {
         doctorId: data.doctorId,
         status: 'SCHEDULED',
         dateTime: {
-          gte: new Date(start.getTime() - DURATION_MS), // ex: 10h15 - 30min = 09h45
-          lt: new Date(start.getTime() + DURATION_MS),  // ex: 10h15 + 30min = 10h45
+          gte: new Date(start.getTime() - DURATION_MS),
+          lt: new Date(start.getTime() + DURATION_MS),
         },
       },
     });
@@ -157,14 +181,6 @@ export class AppointmentsService {
 
   /**
    * Admission d'un patient depuis un rendez-vous.
-   *
-   * M4 — Montant : `amount` est optionnel avec fallback sur DEFAULT_CONSULTATION_FEE
-   * (défaut 15 000 FCFA). Ce fallback est justifié car l'admission depuis un RDV
-   * connaît la spécialité et peut appliquer un tarif par défaut. Le montant
-   * effectivement appliqué est retourné dans la réponse.
-   *
-   * M2 — appointmentId : renseigné sur Consultation et Billing pour la traçabilité.
-   * M3 — Calcul tiers-payant : délégué à calculateInsuranceShare() de billing.utils.ts.
    */
   async admit(id: string, amount?: number, userId?: string) {
     const existing = await this.prisma.appointment.findUnique({
@@ -174,6 +190,20 @@ export class AppointmentsService {
     if (!existing) throw new NotFoundException('Rendez-vous introuvable');
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // Interdire l'admission si le patient a déjà une consultation active en cours
+      const activeConsultation = await tx.consultation.findFirst({
+        where: {
+          patientId: existing.patientId,
+          status: { in: ['PENDING', 'PAID', 'IN_PROGRESS'] },
+        },
+      });
+      if (activeConsultation) {
+        throw new ConflictException(
+          `Le patient a déjà une consultation active en cours (statut : ${activeConsultation.status}). ` +
+          'Veuillez terminer la consultation existante avant d\'en ouvrir une nouvelle.',
+        );
+      }
+
       // 1. Marquer le rendez-vous comme terminé
       const updatedAppointment = await tx.appointment.update({
         where: { id },
@@ -190,7 +220,7 @@ export class AppointmentsService {
       const consultationAmount =
         amount ?? parseInt(process.env.DEFAULT_CONSULTATION_FEE || '15000', 10);
 
-      // M3 — Calcul tiers-payant via utilitaire partagé (zéro duplication)
+      // M3 — Calcul tiers-payant via utilitaire partagé
       const share = calculateInsuranceShare(
         consultationAmount,
         patient.insuranceCoverageShare || 0,
@@ -227,7 +257,7 @@ export class AppointmentsService {
         appointment: updatedAppointment,
         bill,
         consultation,
-        appliedAmount: consultationAmount, // M4 : montant appliqué exposé dans la réponse
+        appliedAmount: consultationAmount,
       };
     });
 

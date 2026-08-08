@@ -49,6 +49,20 @@ export class BillingService {
 
     // Encapsuler dans une transaction atomique Prisma
     const bill = await this.prisma.$transaction(async (tx) => {
+      // Interdire si le patient a déjà une consultation active en cours
+      const activeConsultation = await tx.consultation.findFirst({
+        where: {
+          patientId,
+          status: { in: ['PENDING', 'PAID', 'IN_PROGRESS'] },
+        },
+      });
+      if (activeConsultation) {
+        throw new ConflictException(
+          `Le patient a déjà une consultation active en cours (statut : ${activeConsultation.status}). ` +
+          'Veuillez terminer la consultation existante avant d\'en ouvrir une nouvelle.',
+        );
+      }
+
       const createdBill = await tx.billing.create({
         data: {
           patientId,

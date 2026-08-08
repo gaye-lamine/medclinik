@@ -12,13 +12,30 @@ export class QueueService {
     private smsService: SmsService,
   ) {}
 
+  /**
+   * Récupère la file d'attente triée par priorité clinique puis par heure d’arrivée (FIFO).
+   * Poids : EMERGENCY (1) > URGENT (2) > NORMAL (3).
+   */
   async getQueue() {
-    return this.prisma.queueEntry.findMany({
+    const entries = await this.prisma.queueEntry.findMany({
       include: {
         patient: true,
         assignedDoctor: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'asc' },
+    });
+
+    const priorityWeight: Record<string, number> = {
+      EMERGENCY: 1,
+      URGENT: 2,
+      NORMAL: 3,
+    };
+
+    return entries.sort((a, b) => {
+      const wA = priorityWeight[a.priority] || 3;
+      const wB = priorityWeight[b.priority] || 3;
+      if (wA !== wB) return wA - wB; // Priorité absolue d'abord
+      return a.createdAt.getTime() - b.createdAt.getTime(); // Puis FIFO par date de création
     });
   }
 

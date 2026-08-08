@@ -17,12 +17,10 @@ export class StockService {
   }
 
   async findAlerts() {
-    return this.prisma.stockItem.findMany({
-      where: {
-        quantity: { lte: this.prisma.stockItem.fields.criticalThreshold },
-      },
+    const items = await this.prisma.stockItem.findMany({
       orderBy: { quantity: 'asc' },
     });
+    return items.filter((item) => item.quantity <= item.criticalThreshold);
   }
 
   async create(data: any) {
