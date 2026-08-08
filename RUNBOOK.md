@@ -80,6 +80,45 @@ git commit -m "feat(database): add migration <nom_explicite_migration>"
 
 ---
 
+## 6. 🚀 Étape 6 : CI/CD GitHub Actions & Procédure de Secours
+
+### 6.1 Configuration des Secrets GitHub
+Dans les paramètres du dépôt GitHub (**Settings > Secrets and variables > Actions**), les 3 secrets suivants doivent être configurés :
+- `VPS_HOST` : Adresse IP du serveur VPS (`72.60.213.116`).
+- `VPS_USER` : Utilisateur SSH (`root`).
+- `VPS_SSH_KEY` : Clé privée SSH autorisée sur le VPS.
+
+### 6.2 Déclenchement & Surveillance du Déploiement
+1. Tout `git push origin main` déclenche automatiquement le workflow `.github/workflows/deploy.yml`.
+2. **Job 1 (Build & Validate)** : Valide la compilation TypeScript (`npm ci` & `npm run build`). En cas d'erreur de compilation, le déploiement est stoppé immédiatement avant tout impact sur la production.
+3. **Job 2 (Deploy)** : Se connecte en SSH au VPS, effectue `git pull origin main`, reconstruit l'image Docker via le cache optimisé (`docker compose up -d --build`), et applique les migrations Prisma en attente (`npx prisma migrate deploy`).
+4. **Surveillance** : L'onglet **Actions** de GitHub permet de suivre le déroulement en temps réel.
+
+### 6.3 Procédure de Secours Manuel (Fallback)
+Si le pipeline GitHub Actions échoue (ex: problème réseau, indisponibilité de GitHub Actions), exécuter le déploiement manuel sur le VPS :
+
+```bash
+# 1. Connexion SSH au VPS
+ssh root@72.60.213.116
+
+# 2. Aller dans le dossier du projet et pull les derniers commits
+cd /var/www/html/apps/medclinik
+git pull origin main
+
+# 3. Reconstruire et relancer les conteneurs backend
+cd backend
+docker compose up -d --build
+
+# 4. Appliquer les migrations Prisma en attente
+docker compose exec -T medclinik-backend npx prisma migrate deploy
+
+# 5. Vérifier la santé du service
+docker compose ps
+curl -i http://localhost:3010/api/consultations
+```
+
+---
+
 ## 🔒 Règles de Concurrence et Isolation des Transactions (`billing.service.ts`)
 
 Pour toutes les opérations d'encaissement et d'incrémentation de montants financiers (`pay`), toujours passer le niveau d'isolation `Serializable` à la transaction Prisma :
