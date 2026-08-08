@@ -24,6 +24,7 @@ const client_1 = require("@prisma/client");
 const calculate_share_dto_js_1 = require("./dto/calculate-share.dto.js");
 const create_billing_dto_js_1 = require("./dto/create-billing.dto.js");
 const pay_billing_dto_js_1 = require("./dto/pay-billing.dto.js");
+const refund_billing_dto_js_1 = require("./dto/refund-billing.dto.js");
 const validate_insurance_dto_js_1 = require("./dto/validate-insurance.dto.js");
 const send_wave_sms_dto_js_1 = require("./dto/send-wave-sms.dto.js");
 const swagger_1 = require("@nestjs/swagger");
@@ -64,6 +65,14 @@ let BillingController = class BillingController {
     async pay(id, body, req) {
         const cashierId = req.user.sub;
         return this.billingService.pay(id, cashierId, body);
+    }
+    async refund(id, body, req) {
+        const cashierId = req.user.sub;
+        return this.billingService.refund(id, cashierId, body.reason);
+    }
+    async cancel(id, body, req) {
+        const cashierId = req.user.sub;
+        return this.billingService.cancel(id, cashierId, body.reason);
     }
     async validateInsurance(id, body) {
         return this.billingService.validateInsurance(id, body);
@@ -145,6 +154,30 @@ __decorate([
     __metadata("design:paramtypes", [String, pay_billing_dto_js_1.PayBillingDto, Object]),
     __metadata("design:returntype", Promise)
 ], BillingController.prototype, "pay", null);
+__decorate([
+    (0, common_1.Post)('refund/:id'),
+    (0, roles_decorator_js_1.Roles)(client_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Rembourser une facture réglée / partiellement réglée (ADMIN uniquement)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Facture remboursée' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, refund_billing_dto_js_1.RefundBillingDto, Object]),
+    __metadata("design:returntype", Promise)
+], BillingController.prototype, "refund", null);
+__decorate([
+    (0, common_1.Post)('cancel/:id'),
+    (0, roles_decorator_js_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Annuler une facture impayée avant règlement' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Facture impayée annulée' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, refund_billing_dto_js_1.RefundBillingDto, Object]),
+    __metadata("design:returntype", Promise)
+], BillingController.prototype, "cancel", null);
 __decorate([
     (0, common_1.Post)('validate-insurance/:id'),
     (0, roles_decorator_js_1.Roles)(client_1.Role.CASHIER, client_1.Role.ADMIN),

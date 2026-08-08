@@ -11,10 +11,12 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PayBillingDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 const swagger_1 = require("@nestjs/swagger");
 class PayBillingDto {
     paymentMethod;
     transactionId;
+    amountPaid;
 }
 exports.PayBillingDto = PayBillingDto;
 __decorate([
@@ -29,4 +31,12 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], PayBillingDto.prototype, "transactionId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 3000, required: false }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)({}, { message: 'Le montant versé doit être un nombre' }),
+    (0, class_validator_1.Min)(0, { message: 'Le montant versé doit être supérieur ou égal à 0' }),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Number)
+], PayBillingDto.prototype, "amountPaid", void 0);
 //# sourceMappingURL=pay-billing.dto.js.map

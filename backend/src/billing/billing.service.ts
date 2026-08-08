@@ -81,78 +81,124 @@ export class BillingService {
   async pay(id: string, cashierId: string | null, data: any) {
     const { paymentMethod, transactionId, amountPaid } = data;
 
-    // Encapsuler la vérification ET la mise à jour dans une transaction atomique au niveau d'isolation Serializable
-    const updatedBill = await this.prisma.$transaction(
-      async (tx) => {
-        const bill = await tx.billing.findUnique({ where: { id } });
-        if (!bill) throw new NotFoundException('Facture introuvable');
+    /**
+     * Logique de retry pour les conflits de sérialisation Prisma P2034.
+     * PostgreSQL peut rejeter une transaction SERIALIZABLE si elle entre en
+     * conflit avec une transaction concurrente. On réessaie jusqu'à 3 fois
+     * avec un backoff exponentiel court (50 ms → 100 ms) avant de renvoyer
+     * une 409 lisible au caissier plutôt qu'un 500 brut.
+     */
+    const MAX_RETRIES = 3;
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-      // Garde 1 : Rejeter si la facture est déjà entièrement réglée
-      if (bill.status === BillingStatus.PAID) {
-        throw new ConflictException('Cette facture a déjà été entièrement réglée.');
-      }
+    let lastError: unknown;
 
-      // Garde 2 : Rejeter si la facture est annulée ou remboursée
-      if (bill.status === BillingStatus.CANCELLED || bill.status === BillingStatus.REFUNDED) {
-        throw new BadRequestException(`Impossible de payer une facture avec le statut : ${bill.status}`);
-      }
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const updatedBill = await this.prisma.$transaction(
+          async (tx) => {
+            const bill = await tx.billing.findUnique({ where: { id } });
+            if (!bill) throw new NotFoundException('Facture introuvable');
 
-      // 1. Calcul du montant de l'incrément basé sur les valeurs fraîches lues dans tx
-      const currentAmountPaid = bill.amountPaid || 0;
-      const paymentIncrement = amountPaid !== undefined
-        ? parseFloat(amountPaid)
-        : Math.max(0, bill.patientShare - currentAmountPaid);
+            // Garde 1 : Rejeter si la facture est déjà entièrement réglée
+            if (bill.status === BillingStatus.PAID) {
+              throw new ConflictException('Cette facture a déjà été entièrement réglée.');
+            }
 
-      // 2. Incrémentation atomique du montant réglé en base
-      const incResult = await tx.billing.update({
-        where: { id },
-        data: {
-          amountPaid: { increment: paymentIncrement },
-          cashierId: cashierId || null,
-          paymentMethod: paymentMethod || bill.paymentMethod,
-          transactionId: transactionId || bill.transactionId,
-        },
-      });
+            // Garde 2 : Rejeter si la facture est annulée ou remboursée
+            if (bill.status === BillingStatus.CANCELLED || bill.status === BillingStatus.REFUNDED) {
+              throw new BadRequestException(
+                `Impossible de payer une facture avec le statut : ${bill.status}`,
+              );
+            }
 
-      // 2. Évaluation du statut sur la valeur RÉELLE post-incrément retournée par la BD
-      const isFullyPaid = incResult.amountPaid >= incResult.patientShare;
-      const finalStatus = isFullyPaid ? BillingStatus.PAID : BillingStatus.PARTIALLY_PAID;
+            // 1. Calcul du montant de l'incrément basé sur les valeurs fraîches lues dans tx
+            const currentAmountPaid = bill.amountPaid || 0;
+            const paymentIncrement =
+              amountPaid !== undefined
+                ? parseFloat(amountPaid)
+                : Math.max(0, bill.patientShare - currentAmountPaid);
 
-      // 3. Mise à jour du statut calculé sur la donnée exacte en base
-      const updated = await tx.billing.update({
-        where: { id },
-        data: { status: finalStatus },
-        include: { patient: true, cashier: { select: { name: true } } },
-      });
+            // 2. Incrémentation atomique du montant réglé en base
+            const incResult = await tx.billing.update({
+              where: { id },
+              data: {
+                amountPaid: { increment: paymentIncrement },
+                cashierId: cashierId || null,
+                paymentMethod: paymentMethod || bill.paymentMethod,
+                transactionId: transactionId || bill.transactionId,
+              },
+            });
 
-      // Débloquer la consultation uniquement en cas de paiement intégral
-      if (isFullyPaid) {
-        await tx.consultation.updateMany({
-          where: { billingId: id },
-          data: { status: ConsultationStatus.PAID },
-        });
+            // 3. Évaluation du statut sur la valeur RÉELLE post-incrément retournée par la BD
+            const isFullyPaid = incResult.amountPaid >= incResult.patientShare;
+            const finalStatus = isFullyPaid ? BillingStatus.PAID : BillingStatus.PARTIALLY_PAID;
 
-        const hasQueueEntry = await tx.queueEntry.findFirst({
-          where: { patientId: bill.patientId },
-        });
+            // 4. Mise à jour du statut calculé sur la donnée exacte en base
+            const updated = await tx.billing.update({
+              where: { id },
+              data: { status: finalStatus },
+              include: { patient: true, cashier: { select: { name: true } } },
+            });
 
-        if (!hasQueueEntry) {
-          await tx.queueEntry.create({
-            data: {
-              patientId: bill.patientId,
-              department: 'VITALS',
-              status: 'IN_QUEUE',
-              priority: 'NORMAL',
-            },
-          });
+            // 5. Débloquer la consultation uniquement en cas de paiement intégral
+            if (isFullyPaid) {
+              await tx.consultation.updateMany({
+                where: { billingId: id },
+                data: { status: ConsultationStatus.PAID },
+              });
+
+              const hasQueueEntry = await tx.queueEntry.findFirst({
+                where: { patientId: bill.patientId },
+              });
+
+              if (!hasQueueEntry) {
+                await tx.queueEntry.create({
+                  data: {
+                    patientId: bill.patientId,
+                    department: 'VITALS',
+                    status: 'IN_QUEUE',
+                    priority: 'NORMAL',
+                  },
+                });
+              }
+            }
+
+            return updated;
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+
+        // Succès : diffuser la mise à jour et retourner
+        this.queueGateway.broadcastQueueUpdate();
+        return updatedBill;
+      } catch (err: any) {
+        // P2034 = "Transaction failed due to a write conflict or a deadlock.
+        // Please retry your transaction" (Prisma Serializable conflict)
+        const isSerializationConflict =
+          err?.code === 'P2034' ||
+          (err?.message ?? '').includes('write conflict') ||
+          (err?.message ?? '').includes('deadlock');
+
+        if (!isSerializationConflict) {
+          // Toute autre erreur (404, 400, 409 métier, etc.) remonte immédiatement
+          throw err;
+        }
+
+        lastError = err;
+
+        if (attempt < MAX_RETRIES) {
+          // Backoff exponentiel : 50 ms pour la tentative 1, 100 ms pour la 2
+          await sleep(50 * attempt);
         }
       }
+    }
 
-      return updated;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-
-    this.queueGateway.broadcastQueueUpdate();
-    return updatedBill;
+    // Toutes les tentatives ont échoué sur un conflit de sérialisation
+    throw new ConflictException(
+      'Le paiement est temporairement impossible en raison d\'une concurrence élevée. ' +
+        'Veuillez réessayer dans quelques instants.',
+    );
   }
 
   /**
