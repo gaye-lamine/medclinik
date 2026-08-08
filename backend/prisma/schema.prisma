@@ -100,7 +100,8 @@ model Vitals {
   createdAt         DateTime       @default(now())
 
   // Relations
-  consultations     Consultation[]
+  /// Consultation associée à cette prise de constantes (relation 1:1 stricte)
+  consultation     Consultation?
 }
 
 model Billing {
@@ -136,12 +137,14 @@ model Consultation {
   patient        Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
   doctorId       String
   doctor         User               @relation("DoctorConsultations", fields: [doctorId], references: [id])
-  vitalsId       String?
+  vitalsId       String?            @unique // Relation 1:1 stricte : empêche la réutilisation accidentelle d'une prise de constantes
   vitals         Vitals?            @relation(fields: [vitalsId], references: [id])
   billingId      String?
   billing        Billing?           @relation(fields: [billingId], references: [id])
   diagnosis      String?
   notes          String?
+  /// Spécialité médicale : snapshot figé lors de l'admission (admit()) ou de la création de facture (billing.create()).
+  /// Conservé même si le RDV source est déplacé/modifié ultérieurement, pour traçabilité clinique exacte.
   specialty      String             @default("General") // General, Pediatrics, Gynecology, etc.
   /// Flux de statut : PENDING → PAID (via billing.pay) → IN_PROGRESS (via start) → COMPLETED (via complete)
   /// IMPORTANT : seul billing.service.ts::pay() peut écrire le statut PAID.
