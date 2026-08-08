@@ -16,17 +16,19 @@ export class ConsultationsController {
   constructor(private consultationsService: ConsultationsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Liste de toutes les consultations' })
+  @Roles(Role.DOCTOR, Role.ADMIN)
+  @ApiOperation({ summary: 'Liste de toutes les consultations (Médecins et Admin uniquement)' })
   @ApiResponse({ status: 200, description: 'Consultations récupérées' })
   async findAll() {
     return this.consultationsService.findAll();
   }
 
   @Get(':id')
+  @Roles(Role.DOCTOR, Role.ADMIN)
   @UseGuards(BillingGuard) // Block viewing if not paid
-  @ApiOperation({ summary: 'Détails d\'une consultation' })
+  @ApiOperation({ summary: 'Détails d\'une consultation (Médecins et Admin uniquement)' })
   @ApiResponse({ status: 200, description: 'Détails de la consultation' })
-  @ApiResponse({ status: 403, description: 'Accès bloqué (facture impayée)' })
+  @ApiResponse({ status: 403, description: 'Accès bloqué (facture impayée ou rôle insuffisant)' })
   @ApiResponse({ status: 404, description: 'Consultation introuvable' })
   async findOne(@Param('id') id: string) {
     return this.consultationsService.findOne(id);

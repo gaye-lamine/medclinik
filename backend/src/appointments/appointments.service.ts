@@ -118,55 +118,59 @@ export class AppointmentsService {
   }
 
   async admit(id: string, amount?: number) {
-    // 1. Marquer le rendez-vous comme termine
-    const updatedAppointment = await this.prisma.appointment.update({
+    const existing = await this.prisma.appointment.findUnique({
       where: { id },
-      data: { status: 'COMPLETED' },
-      include: {
-        patient: { select: { id: true, firstName: true, lastName: true, code: true } },
-        doctor: { select: { id: true, name: true, role: true } },
-      }
+      include: { patient: true },
     });
+    if (!existing) throw new NotFoundException('Rendez-vous introuvable');
 
-    // 2. Charger le patient pour les details mutuelle
-    const patient = await this.prisma.patient.findUnique({
-      where: { id: updatedAppointment.patientId },
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Marquer le rendez-vous comme termine
+      const updatedAppointment = await tx.appointment.update({
+        where: { id },
+        data: { status: 'COMPLETED' },
+        include: {
+          patient: { select: { id: true, firstName: true, lastName: true, code: true } },
+          doctor: { select: { id: true, name: true, role: true } },
+        },
+      });
+
+      const patient = existing.patient;
+      const consultationAmount = amount ?? parseInt(process.env.DEFAULT_CONSULTATION_FEE || '15000');
+      const coverage = patient.insuranceCoverageShare || 0;
+      const insuranceShare = (consultationAmount * coverage) / 100;
+      const patientShare = consultationAmount - insuranceShare;
+
+      // 2. Créer la facture impayée
+      const bill = await tx.billing.create({
+        data: {
+          patientId: updatedAppointment.patientId,
+          amount: consultationAmount,
+          amountPaid: 0,
+          status: 'UNPAID',
+          mutuelleName: patient.mutuelleName,
+          insuranceCoverageShare: coverage,
+          patientShare,
+          insuranceShare,
+        },
+      });
+
+      // 3. Créer la consultation associée
+      const consultation = await tx.consultation.create({
+        data: {
+          patientId: updatedAppointment.patientId,
+          doctorId: updatedAppointment.doctorId,
+          billingId: bill.id,
+          status: 'PENDING',
+          specialty: updatedAppointment.specialty,
+        },
+      });
+
+      return {
+        appointment: updatedAppointment,
+        bill,
+        consultation,
+      };
     });
-    if (!patient) throw new NotFoundException('Patient introuvable');
-
-    // 3. Creer la facture — le montant vient du caller (caisse) ou de la config
-    const consultationAmount = amount ?? parseInt(process.env.DEFAULT_CONSULTATION_FEE || '15000');
-    const coverage = patient.insuranceCoverageShare || 0;
-    const insuranceShare = (consultationAmount * coverage) / 100;
-    const patientShare = consultationAmount - insuranceShare;
-
-    const bill = await this.prisma.billing.create({
-      data: {
-        patientId: updatedAppointment.patientId,
-        amount: consultationAmount,
-        status: 'UNPAID',
-        mutuelleName: patient.mutuelleName,
-        insuranceCoverageShare: coverage,
-        patientShare,
-        insuranceShare,
-      },
-    });
-
-    // 4. Create consultation record linked to this bill
-    const consultation = await this.prisma.consultation.create({
-      data: {
-        patientId: updatedAppointment.patientId,
-        doctorId: updatedAppointment.doctorId,
-        billingId: bill.id,
-        status: 'PENDING',
-        specialty: updatedAppointment.specialty,
-      },
-    });
-
-    return {
-      appointment: updatedAppointment,
-      bill,
-      consultation,
-    };
   }
 }

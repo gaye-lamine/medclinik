@@ -11,18 +11,22 @@ export class PatientsService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userRole?: string) {
+    const isCashier = userRole === 'CASHIER';
+
     return this.prisma.patient.findUnique({
       where: { id },
       include: {
-        vitals: { orderBy: { createdAt: 'desc' } },
-        consultations: {
-          include: {
-            doctor: { select: { name: true } },
-            prescriptions: true,
-          },
-          orderBy: { createdAt: 'desc' },
-        },
+        vitals: isCashier ? false : { orderBy: { createdAt: 'desc' } },
+        consultations: isCashier
+          ? false
+          : {
+              include: {
+                doctor: { select: { name: true } },
+                prescriptions: true,
+              },
+              orderBy: { createdAt: 'desc' },
+            },
         bills: { orderBy: { createdAt: 'desc' } },
       },
     });

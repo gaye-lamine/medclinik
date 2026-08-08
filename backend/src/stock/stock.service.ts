@@ -83,41 +83,53 @@ export class StockService {
     if (!rx) throw new NotFoundException('Ordonnance introuvable');
     if (rx.isDelivered) throw new InventoryException('Cette ordonnance a déjà été délivrée.', 'INVENTORY_ALREADY_DELIVERED');
 
-    // 1. Mark as delivered in database
-    await this.prisma.prescription.update({
-      where: { id },
-      data: { isDelivered: true },
-    });
+    const meds = (rx.medicines as any[]) || [];
+    if (meds.length === 0) {
+      throw new BadRequestException('Cette ordonnance ne contient aucun médicament.');
+    }
 
-    // 2. Parse medicines and deduct stock
-    const meds = rx.medicines as any[];
-    let matchedCount = 0;
-    
+    // 1. Pré-vérification de la disponibilité de TOUS les articles en stock avant toute modification
+    const stockDeductions: Array<{ stockItem: any; quantityToDeduct: number }> = [];
+
     for (const med of meds) {
-      // Find matching item in stock
-      const stockItem = await this.prisma.stockItem.findFirst({
-        where: {
-          name: {
-            contains: med.name.split(' ')[0], // match on first word (e.g. Paracétamol)
-            mode: 'insensitive',
-          },
-        },
-      });
+      let stockItem: any = null;
 
-      if (stockItem) {
-        matchedCount++;
-        // Deduct 1 unit by default
-        const quantityToDeduct = 1;
-        await this.prisma.stockItem.update({
-          where: { id: stockItem.id },
-          data: {
-            quantity: Math.max(0, stockItem.quantity - quantityToDeduct),
+      // Priorité 1 : Recherche par ID d'article de stock explicite s'il existe dans le JSON
+      if (med.stockItemId) {
+        stockItem = await this.prisma.stockItem.findUnique({ where: { id: med.stockItemId } });
+      }
+
+      // Priorité 2 : Recherche par correspondance du nom exact ou premier mot
+      if (!stockItem && med.name) {
+        stockItem = await this.prisma.stockItem.findFirst({
+          where: {
+            name: {
+              contains: med.name.split(' ')[0],
+              mode: 'insensitive',
+            },
           },
         });
       }
+
+      if (!stockItem) {
+        throw new NotFoundException(`Médicament "${med.name}" introuvable dans l'inventaire de la pharmacie.`);
+      }
+
+      // Quantité requise : lue du champ explicit `quantity` ou calculée par défaut à 1
+      const quantityToDeduct = med.quantity ? parseFloat(med.quantity) : 1;
+
+      // Contrôle de rupture de stock : Bloquer la délivrance si quantité insuffisante
+      if (stockItem.quantity < quantityToDeduct) {
+        throw new InventoryException(
+          `Stock insuffisant pour "${stockItem.name}". Quantité disponible : ${stockItem.quantity}, requise : ${quantityToDeduct}.`,
+          'INVENTORY_INSUFFICIENT_STOCK',
+        );
+      }
+
+      stockDeductions.push({ stockItem, quantityToDeduct });
     }
 
-    // 3. Create billing record for medicines (ex: 3000 FCFA per medicine)
+    // 2. Calcul du montant total de l'ordonnance et ventilation de la prise en charge
     const pricePerMed = 3000;
     const totalAmount = meds.length * pricePerMed;
     const patient = rx.consultation.patient;
@@ -125,26 +137,51 @@ export class StockService {
     const insuranceShare = (totalAmount * coverage) / 100;
     const patientShare = totalAmount - insuranceShare;
 
-    await this.prisma.billing.create({
-      data: {
-        patientId: patient.id,
-        amount: totalAmount,
-        status: 'PAID',
-        paymentMethod: 'WAVE',
-        transactionId: `RX-DELIV-${rx.uniqueCode}`,
-        mutuelleName: patient.mutuelleName,
-        insuranceCoverageShare: coverage,
-        patientShare,
-        insuranceShare,
-      },
+    // 3. Exécution atomique via une transaction Prisma ($transaction)
+    const result = await this.prisma.$transaction(async (tx) => {
+      // a) Marquer l'ordonnance comme délivrée
+      await tx.prescription.update({
+        where: { id },
+        data: { isDelivered: true },
+      });
+
+      // b) Déduire les quantités exactes en stock
+      for (const item of stockDeductions) {
+        await tx.stockItem.update({
+          where: { id: item.stockItem.id },
+          data: {
+            quantity: item.stockItem.quantity - item.quantityToDeduct,
+          },
+        });
+      }
+
+      // c) Créer la facture de pharmacie en statut UNPAID (à régler via la caisse)
+      const bill = await tx.billing.create({
+        data: {
+          patientId: patient.id,
+          amount: totalAmount,
+          amountPaid: 0,
+          status: 'UNPAID',
+          mutuelleName: patient.mutuelleName,
+          insuranceCoverageShare: coverage,
+          patientShare,
+          insuranceShare,
+          transactionId: `RX-${rx.uniqueCode}`,
+        },
+      });
+
+      return { bill, deductedCount: stockDeductions.length };
     });
 
     this.queueGateway.broadcastQueueUpdate();
     return {
       success: true,
       deliveredMedicines: meds.length,
-      stockItemsDeducted: matchedCount,
+      stockItemsDeducted: result.deductedCount,
+      billingId: result.bill.id,
       totalBilling: totalAmount,
+      patientShare,
+      status: 'UNPAID',
     };
   }
 }

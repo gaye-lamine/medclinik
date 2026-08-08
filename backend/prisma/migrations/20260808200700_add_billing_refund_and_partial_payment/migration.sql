@@ -1,0 +1,8 @@
+-- AlterEnum
+ALTER TYPE "BillingStatus" ADD VALUE 'PARTIALLY_PAID';
+ALTER TYPE "BillingStatus" ADD VALUE 'CANCELLED';
+ALTER TYPE "BillingStatus" ADD VALUE 'REFUNDED';
+
+-- AlterTable
+ALTER TABLE "Billing" ADD COLUMN "amountPaid" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN "refundReason" TEXT;

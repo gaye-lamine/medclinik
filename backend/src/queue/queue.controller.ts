@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Body, Param, Req, UseGuards } from '@nestjs/common';
 import { QueueService } from './queue.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '@prisma/client';
 import { RegisterQueueDto } from './dto/register-queue.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 
@@ -12,6 +14,7 @@ export class QueueController {
   constructor(private queueService: QueueService) {}
 
   @Get()
+  @Roles(Role.ADMIN, Role.DOCTOR, Role.NURSE, Role.CASHIER)
   @ApiOperation({ summary: 'Récupérer la file d\'attente active' })
   @ApiResponse({ status: 200, description: 'File d\'attente récupérée' })
   async getQueue() {
@@ -19,6 +22,7 @@ export class QueueController {
   }
 
   @Post('register')
+  @Roles(Role.ADMIN, Role.NURSE, Role.CASHIER)
   @ApiOperation({ summary: 'Enregistrer un patient dans la file d\'attente' })
   @ApiResponse({ status: 201, description: 'Enregistrement réussi' })
   @ApiResponse({ status: 400, description: 'Données invalides' })
@@ -27,6 +31,7 @@ export class QueueController {
   }
 
   @Post('call/:id')
+  @Roles(Role.ADMIN, Role.DOCTOR, Role.NURSE)
   @ApiOperation({ summary: 'Appeler un patient par son numéro de file' })
   @ApiResponse({ status: 200, description: 'Patient appelé et notifié par SMS' })
   @ApiResponse({ status: 404, description: 'Entrée introuvable' })
@@ -37,6 +42,7 @@ export class QueueController {
   }
 
   @Post('start/:id')
+  @Roles(Role.ADMIN, Role.DOCTOR, Role.NURSE)
   @ApiOperation({ summary: 'Démarrer la consultation/constantes pour le patient' })
   @ApiResponse({ status: 200, description: 'Statut mis à jour' })
   async start(@Param('id') id: string) {
@@ -44,6 +50,7 @@ export class QueueController {
   }
 
   @Post('finish/:id')
+  @Roles(Role.ADMIN, Role.DOCTOR, Role.NURSE)
   @ApiOperation({ summary: 'Retirer un patient de la file d\'attente' })
   @ApiResponse({ status: 200, description: 'Retrait réussi' })
   async finish(@Param('id') id: string) {

@@ -10,6 +10,7 @@ import { Role } from '@prisma/client';
 import { CalculateShareDto } from './dto/calculate-share.dto.js';
 import { CreateBillingDto } from './dto/create-billing.dto.js';
 import { PayBillingDto } from './dto/pay-billing.dto.js';
+import { RefundBillingDto } from './dto/refund-billing.dto.js';
 import { ValidateInsuranceDto } from './dto/validate-insurance.dto.js';
 import { SendWaveSmsDto } from './dto/send-wave-sms.dto.js';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
@@ -78,6 +79,24 @@ export class BillingController {
   async pay(@Param('id') id: string, @Body() body: PayBillingDto, @Req() req: any) {
     const cashierId = req.user.sub;
     return this.billingService.pay(id, cashierId, body);
+  }
+
+  @Post('refund/:id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Rembourser une facture réglée / partiellement réglée (ADMIN uniquement)' })
+  @ApiResponse({ status: 200, description: 'Facture remboursée' })
+  async refund(@Param('id') id: string, @Body() body: RefundBillingDto, @Req() req: any) {
+    const cashierId = req.user.sub;
+    return this.billingService.refund(id, cashierId, body.reason);
+  }
+
+  @Post('cancel/:id')
+  @Roles(Role.CASHIER, Role.ADMIN)
+  @ApiOperation({ summary: 'Annuler une facture impayée avant règlement' })
+  @ApiResponse({ status: 200, description: 'Facture impayée annulée' })
+  async cancel(@Param('id') id: string, @Body() body: RefundBillingDto, @Req() req: any) {
+    const cashierId = req.user.sub;
+    return this.billingService.cancel(id, cashierId, body.reason);
   }
 
   @Post('validate-insurance/:id')

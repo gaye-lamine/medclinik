@@ -22,7 +22,10 @@ enum ConsultationStatus {
 
 enum BillingStatus {
   UNPAID
+  PARTIALLY_PAID
   PAID
+  CANCELLED
+  REFUNDED
 }
 
 enum QueueStatus {
@@ -105,6 +108,7 @@ model Billing {
   cashierId              String?
   cashier                User?          @relation("CashierBills", fields: [cashierId], references: [id])
   amount                 Float          // Total cost
+  amountPaid             Float          @default(0) // Cumulated amount paid by patient
   status                 BillingStatus  @default(UNPAID)
   paymentMethod          String?        // CASH, MOBILE_MONEY, CARD
   mutuelleName           String?
@@ -114,6 +118,7 @@ model Billing {
   transactionId          String?        // Tx ID from Mobile Money / Cash
   insuranceValidated     Boolean        @default(false)
   insuranceAuthCode      String?
+  refundReason           String?
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
 

@@ -15,6 +15,7 @@ export class StockController {
   constructor(private stockService: StockService) {}
 
   @Get()
+  @Roles(Role.ADMIN, Role.DOCTOR, Role.NURSE, Role.CASHIER)
   @ApiOperation({ summary: 'Liste des articles en stock' })
   @ApiResponse({ status: 200, description: 'Stock récupéré' })
   async findAll() {
@@ -22,6 +23,7 @@ export class StockController {
   }
 
   @Get('alerts')
+  @Roles(Role.ADMIN, Role.DOCTOR, Role.NURSE, Role.CASHIER)
   @ApiOperation({ summary: 'Articles en alerte de stock bas' })
   @ApiResponse({ status: 200, description: 'Alertes de stock récupérées' })
   async findAlerts() {
@@ -37,7 +39,7 @@ export class StockController {
   }
 
   @Put('update/:id')
-  @Roles(Role.ADMIN, Role.DOCTOR, Role.NURSE)
+  @Roles(Role.ADMIN, Role.NURSE)
   @ApiOperation({ summary: 'Mettre à jour la quantité et le seuil critique d\'un article' })
   @ApiResponse({ status: 200, description: 'Article mis à jour' })
   async update(@Param('id') id: string, @Body() body: UpdateStockDto) {
@@ -45,6 +47,7 @@ export class StockController {
   }
 
   @Get('prescription/:code')
+  @Roles(Role.ADMIN, Role.DOCTOR, Role.NURSE, Role.CASHIER)
   @ApiOperation({ summary: 'Rechercher une ordonnance par son code RX' })
   @ApiResponse({ status: 200, description: 'Ordonnance trouvée' })
   @ApiResponse({ status: 404, description: 'Ordonnance introuvable' })
@@ -53,6 +56,7 @@ export class StockController {
   }
 
   @Post('deliver/:id')
+  @Roles(Role.ADMIN, Role.CASHIER, Role.NURSE)
   @ApiOperation({ summary: 'Délivrer une ordonnance (déduit le stock et crée la facture pharmacie)' })
   @ApiResponse({ status: 200, description: 'Ordonnance délivrée' })
   async deliverPrescription(@Param('id') id: string) {

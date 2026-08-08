@@ -40,7 +40,7 @@ interface Bill {
 interface Prescription {
   id: string;
   uniqueCode: string;
-  medicines: Array<{ name: string; dosage: string; duration: string }>;
+  medicines: Array<{ name: string; dosage: string; duration: string; quantity: number }>;
   instructions?: string;
   createdAt: string;
 }
@@ -83,10 +83,11 @@ export default function ConsultationPage() {
   const [specialtyTemplate, setSpecialtyTemplate] = useState('General');
   
   // Prescription Builder
-  const [medicines, setMedicines] = useState<Array<{ name: string; dosage: string; duration: string }>>([]);
+  const [medicines, setMedicines] = useState<Array<{ name: string; dosage: string; duration: string; quantity: number }>>([]);
   const [medName, setMedName] = useState('');
   const [medDosage, setMedDosage] = useState('');
   const [medDuration, setMedDuration] = useState('');
+  const [medQuantity, setMedQuantity] = useState<number>(1);
   const [instructions, setInstructions] = useState('');
   const [activePrescription, setActivePrescription] = useState<Prescription | null>(null);
   const [rxQrUrl, setRxQrUrl] = useState<string | null>(null);
@@ -221,11 +222,12 @@ export default function ConsultationPage() {
 
   // Prescription builder helpers
   const addMedicine = () => {
-    if (!medName || !medDosage || !medDuration) return;
-    setMedicines([...medicines, { name: medName, dosage: medDosage, duration: medDuration }]);
+    if (!medName || !medDosage || !medDuration || !medQuantity || medQuantity <= 0) return;
+    setMedicines([...medicines, { name: medName, dosage: medDosage, duration: medDuration, quantity: Number(medQuantity) }]);
     setMedName('');
     setMedDosage('');
     setMedDuration('');
+    setMedQuantity(1);
   };
 
   const removeMedicine = (idx: number) => {
@@ -442,7 +444,7 @@ export default function ConsultationPage() {
 
                 {!activePrescription ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div className="grid-3">
+                    <div className="grid-3" style={{ gridTemplateColumns: '2fr 2fr 1fr 1fr' }}>
                       <div className="form-group">
                         <label className="form-label">Médicament</label>
                         <input type="text" placeholder="ex: Doliprane 1g" value={medName} onChange={(e) => setMedName(e.target.value)} className="form-input" />
@@ -454,6 +456,10 @@ export default function ConsultationPage() {
                       <div className="form-group">
                         <label className="form-label">Durée</label>
                         <input type="text" placeholder="ex: 5 jours" value={medDuration} onChange={(e) => setMedDuration(e.target.value)} className="form-input" />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Qté (Boîtes)</label>
+                        <input type="number" min="1" placeholder="1" value={medQuantity} onChange={(e) => setMedQuantity(Number(e.target.value))} className="form-input" />
                       </div>
                     </div>
 
@@ -469,6 +475,7 @@ export default function ConsultationPage() {
                             <th>Molécule</th>
                             <th>Posologie</th>
                             <th>Durée</th>
+                            <th>Quantité</th>
                             <th>Action</th>
                           </tr>
                         </thead>
@@ -478,6 +485,7 @@ export default function ConsultationPage() {
                               <td>{med.name}</td>
                               <td>{med.dosage}</td>
                               <td>{med.duration}</td>
+                              <td><strong>{med.quantity} unit.</strong></td>
                               <td>
                                 <button type="button" onClick={() => removeMedicine(idx)} style={{ color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer' }}>
                                   Supprimer

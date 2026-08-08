@@ -16,10 +16,10 @@ export class ReportsService {
       },
     });
 
-    // 2. Cash desk volume (Total paid today)
+    // 2. Cash desk volume (Real cash collected today)
     const billsToday = await this.prisma.billing.findMany({
       where: {
-        status: 'PAID',
+        status: { in: ['PAID', 'PARTIALLY_PAID'] },
         updatedAt: { gte: today },
       },
     });
@@ -29,8 +29,8 @@ export class ReportsService {
     let insuranceShareSum = 0;
 
     billsToday.forEach((bill) => {
-      totalRevenue += bill.amount;
-      patientShareSum += bill.patientShare;
+      totalRevenue += bill.amountPaid;
+      patientShareSum += bill.amountPaid;
       insuranceShareSum += bill.insuranceShare;
     });
 
@@ -93,9 +93,9 @@ export class ReportsService {
   }
 
   async getAdvancedReports() {
-    // 1. Finance breakdown by payment method
+    // 1. Finance breakdown by payment method based on real amountPaid
     const bills = await this.prisma.billing.findMany({
-      where: { status: 'PAID' },
+      where: { status: { in: ['PAID', 'PARTIALLY_PAID'] } },
       include: { patient: true },
     });
 
@@ -110,21 +110,22 @@ export class ReportsService {
     bills.forEach((bill) => {
       const method = (bill.paymentMethod || 'CASH').toUpperCase();
       const txId = (bill.transactionId || '').toUpperCase();
+      const paid = bill.amountPaid > 0 ? bill.amountPaid : bill.patientShare;
 
       if (method === 'CASH') {
-        financeBreakdown.CASH += bill.amount;
+        financeBreakdown.CASH += paid;
       } else if (method === 'CARD') {
-        financeBreakdown.CARD += bill.amount;
-      } else if (method === 'MOBILE_MONEY' || method === 'MOMO') {
-        if (txId.includes('WAVE')) {
-          financeBreakdown.WAVE += bill.amount;
+        financeBreakdown.CARD += paid;
+      } else if (method === 'MOBILE_MONEY' || method === 'MOMO' || method === 'MOBILE_MONEY_WAVE') {
+        if (txId.includes('WAVE') || method === 'MOBILE_MONEY_WAVE') {
+          financeBreakdown.WAVE += paid;
         } else if (txId.includes('ORANGE') || txId.includes('OM')) {
-          financeBreakdown.ORANGE_MONEY += bill.amount;
+          financeBreakdown.ORANGE_MONEY += paid;
         } else {
-          financeBreakdown.MTN_MOMO += bill.amount;
+          financeBreakdown.MTN_MOMO += paid;
         }
       } else {
-        financeBreakdown.CASH += bill.amount;
+        financeBreakdown.CASH += paid;
       }
     });
 

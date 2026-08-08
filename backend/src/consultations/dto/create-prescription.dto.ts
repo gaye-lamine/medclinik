@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsArray, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsArray, IsNumber, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -17,6 +17,17 @@ export class MedicineDto {
   @IsNotEmpty({ message: 'La durée est requise' })
   @IsString()
   duration: string;
+
+  @ApiProperty({ example: 2, description: 'Quantité de boîtes / unités à prescrire' })
+  @IsNotEmpty({ message: 'La quantité de médicament est requise' })
+  @IsNumber({}, { message: 'La quantité doit être un nombre' })
+  @Min(1, { message: 'La quantité doit être au moins de 1' })
+  quantity: number;
+
+  @ApiProperty({ example: 'uuid-stock-item-id', required: false })
+  @IsOptional()
+  @IsString()
+  stockItemId?: string;
 }
 
 export class CreatePrescriptionDto {
