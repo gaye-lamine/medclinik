@@ -34,7 +34,7 @@ jobs:
         working-directory: backend
         run: npm run build
 
-  # ─── Job 2 : Déploiement sur le VPS (uniquement si le build valide) ────────
+  # ─── Job 2 : Déploiement sécurisé sur le VPS (Utilisateur 'deployer') ──────
   deploy:
     name: Deploy to VPS
     needs: build
@@ -46,21 +46,53 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          username: ${{ secrets.VPS_USER }} # Utilisateur dédié à droits limités 'deployer'
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script_stop: true
           script: |
             set -e
+
             echo "=== 1. Synchronisation du dépôt Git ==="
             cd /var/www/html/apps/medclinik
             git pull origin main
 
-            echo "=== 2. Re-construction et relancement des conteneurs ==="
+            echo "=== 2. Sauvegarde automatique de la base de données (pg_dump) ==="
+            mkdir -p /var/www/html/apps/medclinik/backups
+            TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
+            BACKUP_FILE="/var/www/html/apps/medclinik/backups/${TIMESTAMP}-cicd-pre-deploy.sql"
+            docker exec -t medclinik-db pg_dump -U medclinik_user medclinik_db > "${BACKUP_FILE}"
+            
+            # Contrôle strict : le fichier de backup ne doit ni être absent ni vide (0 octet)
+            if [ ! -s "${BACKUP_FILE}" ]; then
+              echo "ERREUR CRITIQUE: La sauvegarde pg_dump a échoué ou produit un fichier vide ! Déploiement interrompu."
+              exit 1
+            fi
+            echo "Sauvegarde réussie : ${BACKUP_FILE} ($(wc -c < "${BACKUP_FILE}") octets)"
+
+            echo "=== 3. Re-construction et relancement des conteneurs ==="
             cd backend
             docker compose up -d --build
 
-            echo "=== 3. Application des migrations Prisma en attente ==="
+            echo "=== 4. Application des migrations Prisma en attente ==="
             docker compose exec -T medclinik-backend npx prisma migrate deploy
 
-            echo "=== Déploiement CI/CD terminé avec succès ==="
+            echo "=== 5. Vérification de santé post-déploiement (30s max) ==="
+            HEALTHCHECK_OK=0
+            for i in $(seq 1 6); do
+              HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3010/api/consultations || true)
+              if [ "$HTTP_STATUS" = "401" ] || [ "$HTTP_STATUS" = "200" ]; then
+                echo "Santé API confirmée (HTTP $HTTP_STATUS) au bout de $((i * 5))s"
+                HEALTHCHECK_OK=1
+                break
+              fi
+              echo "En attente du démarrage de l'API (tentative $i/6, réponse HTTP: '$HTTP_STATUS')..."
+              sleep 5
+            done
+
+            if [ $HEALTHCHECK_OK -ne 1 ]; then
+              echo "ERREUR CRITIQUE: Le conteneur backend ne répond pas dans le délai imparti de 30 secondes !"
+              exit 1
+            fi
+
+            echo "=== Déploiement CI/CD MedClinik terminé avec succès ==="
