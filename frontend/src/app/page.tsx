@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth, ROLE_LABELS } from '../components/AuthContext';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { LandingPage } from '../components/LandingPage';
 
 interface DashboardData {
@@ -20,11 +21,7 @@ interface DashboardData {
 
 export default function Dashboard() {
   const { user, apiFetch, token, logout } = useAuth();
-
-  // Si l'utilisateur n'est pas connecté, afficher la Landing Page publique
-  if (!user) {
-    return <LandingPage />;
-  }
+  const router = useRouter();
 
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,10 +45,33 @@ export default function Dashboard() {
   }, [apiFetch]);
 
   useEffect(() => {
-    if (token) {
+    if (!token || !user) return;
+
+    if (user.role === 'ADMIN') {
       fetchDashboardData();
+    } else if (user.role === 'NURSE') {
+      router.replace('/queue');
+    } else if (user.role === 'CASHIER') {
+      router.replace('/caisse');
+    } else if (user.role === 'DOCTOR') {
+      router.replace('/consultation');
     }
-  }, [token, fetchDashboardData]);
+  }, [token, user, fetchDashboardData, router]);
+
+  // Si l'utilisateur n'est pas connecté, afficher la Landing Page publique
+  if (!user) {
+    return <LandingPage />;
+  }
+
+  // Pour les rôles non-ADMIN, afficher un spinner pendant la redirection
+  if (user.role !== 'ADMIN') {
+    return (
+      <div className="dashboard-loading-container">
+        <div className="dashboard-spinner"></div>
+        <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>Redirection vers votre espace de travail...</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
