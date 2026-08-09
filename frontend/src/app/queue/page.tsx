@@ -559,7 +559,7 @@ export default function QueuePage() {
                       >
                         Commencer
                       </button>
-                    ) : (
+                    ) : (user?.role === 'DOCTOR' || user?.role === 'ADMIN') ? (
                       <Link
                         href="/consultation"
                         className="btn btn-primary"
@@ -567,6 +567,10 @@ export default function QueuePage() {
                       >
                         Ouvrir Consultation
                       </Link>
+                    ) : (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        Consultation en cours
+                      </span>
                     )}
                   </div>
                 </div>

@@ -291,6 +291,15 @@ h1 {
   text-decoration: none;
 }
 
+.btn:disabled, button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: grayscale(0.5);
+}
+
 .btn-primary {
   background: var(--primary-color);
   color: hsl(222, 47%, 7%);

@@ -442,14 +442,16 @@ export default function AgendaPage() {
                   )}
                 </>
               )}
-              <button 
-                type="button" 
-                onClick={() => handleDelete(selectedApptDetail.id)} 
-                className="btn btn-danger"
-                style={{ marginLeft: 'auto' }}
-              >
-                Supprimer
-              </button>
+              {user?.role === 'ADMIN' && (
+                <button 
+                  type="button" 
+                  onClick={() => handleDelete(selectedApptDetail.id)} 
+                  className="btn btn-danger"
+                  style={{ marginLeft: 'auto' }}
+                >
+                  Supprimer
+                </button>
+              )}
             </div>
           </div>
         </div>
