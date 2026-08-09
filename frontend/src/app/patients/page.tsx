@@ -264,7 +264,7 @@ export default function PatientsPage() {
                     type="tel"
                     required
                     placeholder="+221 77 000 00 00"
-                    pattern="^(\+221|00221|221)?[37][0-9]{7}$"
+                    pattern="^(\+221|00221|221)?[37][0-9]{8}$"
                     title="Numéro sénégalais : +221 suivi de 9 chiffres (ex: +221770000000 ou 770000000)"
                     value={newPatient.phoneNumber}
                     onChange={(e) => setNewPatient({ ...newPatient, phoneNumber: e.target.value })}
