@@ -136,6 +136,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(data.accessToken);
         setUser(data.user);
         setShowOtpModal(false);
+        if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+          window.location.href = '/';
+        }
       } else {
         setTempToken(data.tempToken);
         setPhoneDigits(data.phone);
@@ -154,6 +157,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
     setError(null);
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
   };
 
   const triggerRoleSwitch = async (role: Role) => {
@@ -177,6 +183,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(data.accessToken);
         setUser(data.user);
         setShowOtpModal(false);
+        if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+          window.location.href = '/';
+        }
       } else {
         setPendingRole(role);
         setTempToken(data.tempToken);
@@ -211,6 +220,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setShowOtpModal(false);
       setPendingRole(null);
       setTempToken(null);
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
       return true;
     } catch (e: unknown) {
       setError(parseApiError(e, 'Code OTP incorrect ou expiré.'));
