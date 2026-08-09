@@ -459,7 +459,7 @@ export default function ConsultationPage() {
                       </div>
                       <div className="form-group">
                         <label className="form-label">Qté (Boîtes)</label>
-                        <input type="number" min="1" placeholder="1" value={medQuantity} onChange={(e) => setMedQuantity(Number(e.target.value))} className="form-input" />
+                        <input type="number" min="1" required placeholder="1" value={medQuantity} onChange={(e) => setMedQuantity(Number(e.target.value))} className="form-input" />
                       </div>
                     </div>
 

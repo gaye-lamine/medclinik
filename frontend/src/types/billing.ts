@@ -14,12 +14,13 @@ export interface Bill {
   patientId: string;
   patient: Patient;
   amount: number;
-  status: 'UNPAID' | 'PAID';
+  status: 'UNPAID' | 'PAID' | 'PARTIALLY_PAID' | 'CANCELLED' | 'REFUNDED';
   paymentMethod?: string;
   mutuelleName?: string;
   insuranceCoverageShare: number;
   patientShare: number;
   insuranceShare: number;
+  amountPaid?: number;        // montant déjà encaissé (paiements partiels cumulés)
   transactionId?: string;
   createdAt: string;
   cashier?: { name: string };

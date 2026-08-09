@@ -263,12 +263,17 @@ export default function PatientsPage() {
                   <input
                     type="tel"
                     required
-                    placeholder="+221770000000"
+                    placeholder="+221 77 000 00 00"
+                    pattern="^(\+221|00221|221)?[37][0-9]{7}$"
+                    title="Numéro sénégalais : +221 suivi de 9 chiffres (ex: +221770000000 ou 770000000)"
                     value={newPatient.phoneNumber}
                     onChange={(e) => setNewPatient({ ...newPatient, phoneNumber: e.target.value })}
                     className="form-input"
                     disabled={isSubmitting}
                   />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                    Format : +221770000000 ou 770000000
+                  </span>
                 </div>
               </div>
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Patient } from '../../types/billing';
 import { PatientService } from '../../services/patient.service';
 import { BillingService } from '../../services/billing.service';
+import { useToast } from '../ToastContext';
 
 interface Doctor {
   id: string;
@@ -34,7 +35,9 @@ export const BillCreateForm: React.FC<BillCreateFormProps> = ({
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [doctorsLoadError, setDoctorsLoadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   // Charger la liste des médecins au montage
   useEffect(() => {
@@ -43,8 +46,15 @@ export const BillCreateForm: React.FC<BillCreateFormProps> = ({
         const docs = users.filter((u) => u.role === 'DOCTOR');
         setDoctors(docs);
         if (docs.length > 0) setSelectedDoctorId(docs[0].id);
+        if (docs.length === 0) {
+          setDoctorsLoadError('Aucun médecin trouvé dans le système.');
+        }
       })
-      .catch(console.error);
+      .catch((e: any) => {
+        const msg = e?.message || 'Impossible de charger la liste des médecins.';
+        setDoctorsLoadError(msg);
+        toast.error(msg);
+      });
   }, [apiFetch]);
 
   const handleSearch = async (query: string) => {
@@ -95,6 +105,12 @@ export const BillCreateForm: React.FC<BillCreateFormProps> = ({
       <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
         Créez une facture pour un patient. Cela générera automatiquement un dossier d'examen en attente de paiement.
       </p>
+
+      {doctorsLoadError && (
+        <div style={{ backgroundColor: 'rgba(255,160,0,0.12)', border: '1px solid #ffa000', color: '#ffa000', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.88rem' }}>
+          ⚠️ {doctorsLoadError}
+        </div>
+      )}
 
       {error && (
         <div style={{ backgroundColor: 'var(--danger-glow)', border: '1px solid var(--danger)', color: '#fff', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
