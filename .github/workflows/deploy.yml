@@ -34,7 +34,7 @@ jobs:
         working-directory: backend
         run: npm run build
 
-  # ─── Job 2 : Déploiement sécurisé sur le VPS (Utilisateur 'deployer') ──────
+  # ─── Job 2 : Déploiement sécurisé sur le VPS ──────────────────────────────
   deploy:
     name: Deploy to VPS
     needs: build
@@ -42,15 +42,26 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Vérification de la présence des Secrets GitHub
+        run: |
+          MISSING=0
+          if [ -z "${{ secrets.VPS_HOST }}" ]; then echo "❌ Secret GitHub 'VPS_HOST' manquant !"; MISSING=1; fi
+          if [ -z "${{ secrets.VPS_USER }}" ]; then echo "❌ Secret GitHub 'VPS_USER' manquant !"; MISSING=1; fi
+          if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then echo "❌ Secret GitHub 'VPS_SSH_KEY' manquant !"; MISSING=1; fi
+          if [ $MISSING -eq 1 ]; then
+            echo ""
+            echo "👉 Allez dans Settings > Secrets and variables > Actions sur GitHub pour ajouter ces 3 secrets."
+            exit 1
+          fi
+
+      - name: Configuration de la clé SSH
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }} # Utilisateur dédié à droits limités 'deployer'
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script_stop: true
-          script: |
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Exécution des commandes de déploiement via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             set -e
 
             echo "=== 1. Synchronisation du dépôt Git ==="
@@ -63,7 +74,6 @@ jobs:
             BACKUP_FILE="/var/www/html/apps/medclinik/backups/${TIMESTAMP}-cicd-pre-deploy.sql"
             docker exec -t medclinik-db pg_dump -U medclinik_user medclinik_db > "${BACKUP_FILE}"
             
-            # Contrôle strict : le fichier de backup ne doit ni être absent ni vide (0 octet)
             if [ ! -s "${BACKUP_FILE}" ]; then
               echo "ERREUR CRITIQUE: La sauvegarde pg_dump a échoué ou produit un fichier vide ! Déploiement interrompu."
               exit 1
@@ -91,8 +101,9 @@ jobs:
             done
 
             if [ $HEALTHCHECK_OK -ne 1 ]; then
-              echo "ERREUR CRITIQUE: Le conteneur backend ne répond pas dans le délai imparti de 30 secondes !"
+              echo "ERREUR CRITIQUE: Le conteneur backend ne répond pas dans le délai de 30 secondes !"
               exit 1
             fi
 
             echo "=== Déploiement CI/CD MedClinik terminé avec succès ==="
+          EOF
