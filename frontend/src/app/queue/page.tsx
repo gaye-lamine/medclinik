@@ -198,7 +198,7 @@ export default function QueuePage() {
         <div>
           <h1>File d'attente en temps réel</h1>
           <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Synchronisation en temps réel via WebSockets pour l'accueil, les constantes et les consultations.
+            Mise à jour automatique et continue de la file d'attente sur tous les postes.
           </p>
         </div>
 

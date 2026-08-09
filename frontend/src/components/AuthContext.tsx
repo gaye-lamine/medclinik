@@ -17,7 +17,7 @@ function parseApiError(e: unknown, fallback = "Une erreur inattendue s'est produ
       return 'Impossible de joindre le serveur. Veuillez vérifier votre connexion ou réessayer plus tard.';
     }
     if (e.message.toLowerCase().includes('cors')) {
-      return 'Accès refusé par le serveur (politique CORS). Contactez votre administrateur.';
+      return 'Accès refusé. Veuillez contacter votre administrateur.';
     }
     return `Erreur réseau : ${e.message}`;
   }

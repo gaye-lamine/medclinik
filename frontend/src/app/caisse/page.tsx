@@ -81,7 +81,7 @@ export default function CaissePage() {
       toast.success(`Prise en charge validée en ligne avec succès ! Code d'autorisation : ${updatedBill.insuranceAuthCode}`);
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || 'Erreur de communication avec le serveur mutuelle.');
+      toast.error(e.message || 'Erreur de communication avec le service de mutuelle.');
     } finally {
       setValidatingId(null);
     }

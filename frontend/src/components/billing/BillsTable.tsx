@@ -81,7 +81,7 @@ export const BillsTable: React.FC<BillsTableProps> = ({
                             className="btn btn-secondary"
                             style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem', width: 'fit-content' }}
                           >
-                            {validatingId === bill.id ? 'Connexion API...' : 'Valider via API'}
+                            {validatingId === bill.id ? 'Vérification en cours...' : 'Valider la prise en charge'}
                           </button>
                         )}
                       </div>

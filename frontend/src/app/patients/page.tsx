@@ -127,7 +127,7 @@ export default function PatientsPage() {
 
       {error && (
         <div style={styles.errorAlert}>
-          <strong>Erreur système :</strong> {error}
+          <strong>Information :</strong> {error}
         </div>
       )}
 

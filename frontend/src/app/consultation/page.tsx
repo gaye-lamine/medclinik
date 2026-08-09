@@ -736,13 +736,31 @@ export default function ConsultationPage() {
                   />
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => setSelectedConsult(null)} className="btn btn-secondary">
-                    Fermer sans enregistrer
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Clôturer et Archiver au Dossier Patient
-                  </button>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', width: '100%' }}>
+                    <button type="button" onClick={() => setSelectedConsult(null)} className="btn btn-secondary">
+                      Fermer sans enregistrer
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={selectedConsult?.status !== 'IN_PROGRESS'}
+                      className={`btn ${selectedConsult?.status === 'IN_PROGRESS' ? 'btn-primary' : 'btn-secondary'}`}
+                      style={selectedConsult?.status !== 'IN_PROGRESS' ? { cursor: 'not-allowed', opacity: 0.6 } : {}}
+                    >
+                      Clôturer et Archiver au Dossier Patient
+                    </button>
+                  </div>
+                  {selectedConsult?.status !== 'IN_PROGRESS' && (
+                    <span style={{ fontSize: '0.8rem', color: selectedConsult?.status === 'PENDING' ? 'var(--warning)' : 'var(--text-muted)', fontWeight: '500' }}>
+                      {selectedConsult?.status === 'PENDING'
+                        ? "⚠️ En attente de règlement à la caisse avant ouverture du dossier."
+                        : (selectedConsult?.status === 'SCHEDULED' || selectedConsult?.status === 'PAID')
+                        ? "ℹ️ La consultation doit d'abord être démarrée par le praticien."
+                        : selectedConsult?.status === 'COMPLETED'
+                        ? "✓ Cette consultation est déjà clôturée et archivée dans le DMP."
+                        : "ℹ️ La consultation doit être en cours pour pouvoir être clôturée."}
+                    </span>
+                  )}
                 </div>
               </form>
             </div>
