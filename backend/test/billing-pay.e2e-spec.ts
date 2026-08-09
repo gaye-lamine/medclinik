@@ -1,17 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ConflictException, BadRequestException } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { BillingService } from '../src/billing/billing.service';
-import { BillingStatus } from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
+import { BillingStatus, Role } from '@prisma/client';
 
-describe('BillingService Integration Tests (e2e)', () => {
+describe('BillingService Integration Tests (e2e HTTP)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let billingService: BillingService;
+  let jwtService: JwtService;
 
+  let cashierToken: string;
+  let cashierUser: any;
   let testPatientId: string;
   let testDoctorId: string;
+
+  jest.setTimeout(30000);
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -22,22 +27,41 @@ describe('BillingService Integration Tests (e2e)', () => {
     await app.init();
 
     prisma = app.get(PrismaService);
-    billingService = app.get(BillingService);
+    jwtService = app.get(JwtService);
+
+    const timestamp = Date.now();
+
+    // Create cashier user and JWT token with 2FA complete
+    cashierUser = await prisma.user.create({
+      data: {
+        email: `cashier-pay-${timestamp}@medclinik.test`,
+        password: 'hash',
+        name: 'Caissier Pay Test',
+        role: Role.CASHIER,
+      },
+    });
+
+    cashierToken = jwtService.sign({
+      sub: cashierUser.id,
+      email: cashierUser.email,
+      role: cashierUser.role,
+      is2faComplete: true,
+    });
 
     // Seed test doctor & patient
     const doctor = await prisma.user.create({
       data: {
-        email: `doc-${Date.now()}@medclinik.test`,
+        email: `doc-pay-${timestamp}@medclinik.test`,
         password: 'hash',
         name: 'Dr Test Billing',
-        role: 'DOCTOR',
+        role: Role.DOCTOR,
       },
     });
     testDoctorId = doctor.id;
 
     const patient = await prisma.patient.create({
       data: {
-        code: `P-TEST-${Date.now()}`,
+        code: `P-TEST-PAY-${timestamp}`,
         firstName: 'Jean',
         lastName: 'Dupont',
         dateOfBirth: new Date('1990-01-01'),
@@ -54,7 +78,7 @@ describe('BillingService Integration Tests (e2e)', () => {
     await prisma.consultation.deleteMany({ where: { patientId: testPatientId } });
     await prisma.billing.deleteMany({ where: { patientId: testPatientId } });
     await prisma.patient.delete({ where: { id: testPatientId } });
-    await prisma.user.delete({ where: { id: testDoctorId } });
+    await prisma.user.deleteMany({ where: { id: { in: [testDoctorId, cashierUser.id] } } });
     await app.close();
   });
 
@@ -70,13 +94,17 @@ describe('BillingService Integration Tests (e2e)', () => {
       },
     });
 
-    const res = await billingService.pay(bill.id, null, {
-      paymentMethod: 'CASH',
-      amountPaid: 10000,
-    });
+    const res = await request(app.getHttpServer())
+      .post(`/billing/pay/${bill.id}`)
+      .set('Authorization', `Bearer ${cashierToken}`)
+      .send({
+        paymentMethod: 'CASH',
+        amountPaid: 10000,
+      })
+      .expect(201); // NestJS @Post returns 201 Created by default
 
-    expect(res.status).toBe(BillingStatus.PAID);
-    expect(res.amountPaid).toBe(10000);
+    expect(res.body.status).toBe(BillingStatus.PAID);
+    expect(res.body.amountPaid).toBe(10000);
 
     const checkDb = await prisma.billing.findUnique({ where: { id: bill.id } });
     expect(checkDb?.status).toBe(BillingStatus.PAID);
@@ -95,24 +123,34 @@ describe('BillingService Integration Tests (e2e)', () => {
       },
     });
 
-    // Premier paiement partiel de 4000
-    const res1 = await billingService.pay(bill.id, null, {
-      paymentMethod: 'CASH',
-      amountPaid: 4000,
-    });
-    expect(res1.status).toBe(BillingStatus.PARTIALLY_PAID);
-    expect(res1.amountPaid).toBe(4000);
+    // Premier paiement partiel HTTP de 4000
+    const res1 = await request(app.getHttpServer())
+      .post(`/billing/pay/${bill.id}`)
+      .set('Authorization', `Bearer ${cashierToken}`)
+      .send({
+        paymentMethod: 'CASH',
+        amountPaid: 4000,
+      })
+      .expect(201);
 
-    // Second paiement partiel de 3000 -> total 7000
-    const res2 = await billingService.pay(bill.id, null, {
-      paymentMethod: 'CASH',
-      amountPaid: 3000,
-    });
-    expect(res2.status).toBe(BillingStatus.PARTIALLY_PAID);
-    expect(res2.amountPaid).toBe(7000);
+    expect(res1.body.status).toBe(BillingStatus.PARTIALLY_PAID);
+    expect(res1.body.amountPaid).toBe(4000);
+
+    // Second paiement partiel HTTP de 3000 -> total 7000
+    const res2 = await request(app.getHttpServer())
+      .post(`/billing/pay/${bill.id}`)
+      .set('Authorization', `Bearer ${cashierToken}`)
+      .send({
+        paymentMethod: 'CASH',
+        amountPaid: 3000,
+      })
+      .expect(201);
+
+    expect(res2.body.status).toBe(BillingStatus.PARTIALLY_PAID);
+    expect(res2.body.amountPaid).toBe(7000);
   });
 
-  it('3. Rejet si facture déjà PAID (409 ConflictException)', async () => {
+  it('3. Rejet si facture déjà PAID (409 Conflict)', async () => {
     const bill = await prisma.billing.create({
       data: {
         patientId: testPatientId,
@@ -124,15 +162,17 @@ describe('BillingService Integration Tests (e2e)', () => {
       },
     });
 
-    await expect(
-      billingService.pay(bill.id, null, {
+    await request(app.getHttpServer())
+      .post(`/billing/pay/${bill.id}`)
+      .set('Authorization', `Bearer ${cashierToken}`)
+      .send({
         paymentMethod: 'CASH',
         amountPaid: 1000,
-      }),
-    ).rejects.toThrow(ConflictException);
+      })
+      .expect(409);
   });
 
-  it('4. Rejet si statut CANCELLED ou REFUNDED (400 BadRequestException)', async () => {
+  it('4. Rejet si statut CANCELLED ou REFUNDED (400 BadRequest)', async () => {
     const cancelledBill = await prisma.billing.create({
       data: {
         patientId: testPatientId,
@@ -144,12 +184,14 @@ describe('BillingService Integration Tests (e2e)', () => {
       },
     });
 
-    await expect(
-      billingService.pay(cancelledBill.id, null, {
+    await request(app.getHttpServer())
+      .post(`/billing/pay/${cancelledBill.id}`)
+      .set('Authorization', `Bearer ${cashierToken}`)
+      .send({
         paymentMethod: 'CASH',
         amountPaid: 5000,
-      }),
-    ).rejects.toThrow(BadRequestException);
+      })
+      .expect(400);
 
     const refundedBill = await prisma.billing.create({
       data: {
@@ -162,15 +204,17 @@ describe('BillingService Integration Tests (e2e)', () => {
       },
     });
 
-    await expect(
-      billingService.pay(refundedBill.id, null, {
+    await request(app.getHttpServer())
+      .post(`/billing/pay/${refundedBill.id}`)
+      .set('Authorization', `Bearer ${cashierToken}`)
+      .send({
         paymentMethod: 'CASH',
         amountPaid: 5000,
-      }),
-    ).rejects.toThrow(BadRequestException);
+      })
+      .expect(400);
   });
 
-  it('5. Sécurité de paiement concurrent (incrément atomique sans perte d argent)', async () => {
+  it('5. Sécurité de concurrence (Promise.all de 2 vraies requêtes HTTP supertest en parallèle)', async () => {
     const bill = await prisma.billing.create({
       data: {
         patientId: testPatientId,
@@ -182,14 +226,20 @@ describe('BillingService Integration Tests (e2e)', () => {
       },
     });
 
-    // Lancement de 2 paiements simultanés de 5000 FCFA chacun
+    // Lancement de 2 VRAIES requêtes HTTP supertest en parallèle via Promise.all
     await Promise.all([
-      billingService.pay(bill.id, null, { paymentMethod: 'CASH', amountPaid: 5000 }),
-      billingService.pay(bill.id, null, { paymentMethod: 'WAVE', amountPaid: 5000 }),
+      request(app.getHttpServer())
+        .post(`/billing/pay/${bill.id}`)
+        .set('Authorization', `Bearer ${cashierToken}`)
+        .send({ paymentMethod: 'CASH', amountPaid: 5000 }),
+      request(app.getHttpServer())
+        .post(`/billing/pay/${bill.id}`)
+        .set('Authorization', `Bearer ${cashierToken}`)
+        .send({ paymentMethod: 'WAVE', amountPaid: 5000 }),
     ]);
 
     const checkDb = await prisma.billing.findUnique({ where: { id: bill.id } });
     expect(checkDb?.amountPaid).toBe(10000);
     expect(checkDb?.status).toBe(BillingStatus.PAID);
-  });
+  }, 30000);
 });
