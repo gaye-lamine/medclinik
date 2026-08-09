@@ -48,6 +48,8 @@ jobs:
         run: npm ci
 
       - name: Generate Prisma Client
+        env:
+          DATABASE_URL: postgresql://medclinik_user:medclinik_password@localhost:5432/medclinik_test_db?schema=public
         run: npx prisma generate
 
       - name: Deploy Prisma Schema to Ephemeral PostgreSQL
