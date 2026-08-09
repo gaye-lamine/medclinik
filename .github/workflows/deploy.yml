@@ -67,6 +67,7 @@ jobs:
 
             echo "=== 1. Synchronisation du dépôt Git ==="
             cd /var/www/html/apps/medclinik
+            git reset --hard HEAD
             git pull origin main
 
             echo "=== 2. Sauvegarde automatique de la base de données (pg_dump) ==="
