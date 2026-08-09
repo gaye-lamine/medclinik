@@ -11,7 +11,7 @@ permissions:
   packages: write
 
 jobs:
-  # ─── Job 1 : Build & Push Image Docker vers GHCR ────────────────────────────
+  # ─── Job 1 : Build & Push Image Docker vers GHCR (sur le runner GitHub) ─────
   build:
     name: Build & Push Docker Image to GHCR
     runs-on: ubuntu-latest
@@ -62,64 +62,62 @@ jobs:
             exit 1
           fi
 
-      - name: Configuration de la clé SSH
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Déploiement via SSH sur le VPS (Utilisateur 'deployer')
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-
-      - name: Exécution du déploiement via SSH (Pull & Up sans Build)
-        env:
-          G_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          G_ACTOR: ${{ github.actor }}
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          timeout: 10m
+          command_timeout: 10m
+          script_stop: true
+          script: |
             set -e
 
-            echo '=== 1. Synchronisation du dépôt Git ==='
+            echo "=== 1. Synchronisation du dépôt Git ==="
             cd /var/www/html/apps/medclinik
             git reset --hard HEAD
             git pull origin main
 
-            echo '=== 2. Sauvegarde automatique de la base de données (pg_dump) ==='
+            echo "=== 2. Sauvegarde automatique de la base de données (pg_dump) ==="
             mkdir -p /var/www/html/apps/medclinik/backups
-            TIMESTAMP=\$(date +%Y-%m-%d-%H%M%S)
-            BACKUP_FILE=\"/var/www/html/apps/medclinik/backups/\${TIMESTAMP}-cicd-pre-deploy.sql\"
-            docker exec -t medclinik-db pg_dump -U medclinik_user medclinik_db > \"\${BACKUP_FILE}\"
+            TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
+            BACKUP_FILE="/var/www/html/apps/medclinik/backups/${TIMESTAMP}-cicd-pre-deploy.sql"
+            docker exec -t medclinik-db pg_dump -U medclinik_user medclinik_db > "${BACKUP_FILE}"
             
-            if [ ! -s \"\${BACKUP_FILE}\" ]; then
-              echo 'ERREUR CRITIQUE: La sauvegarde pg_dump a échoué ou produit un fichier vide ! Déploiement interrompu.'
+            if [ ! -s "${BACKUP_FILE}" ]; then
+              echo "ERREUR CRITIQUE: La sauvegarde pg_dump a échoué ou produit un fichier vide ! Déploiement interrompu."
               exit 1
             fi
-            echo \"Sauvegarde réussie : \${BACKUP_FILE} (\$(wc -c < \"\${BACKUP_FILE}\") octets)\"
+            echo "Sauvegarde réussie : ${BACKUP_FILE} ($(wc -c < "${BACKUP_FILE}") octets)"
 
-            echo '=== 3. Authentification GHCR & Récupération de l'image (Pull) ==='
+            echo "=== 3. Récupération de l'image pré-construite depuis GHCR (Pull) ==="
             cd backend
-            echo '${G_TOKEN}' | docker login ghcr.io -u '${G_ACTOR}' --password-stdin
             docker compose pull medclinik-backend
 
-            echo '=== 4. Démarrage des conteneurs avec l'image GHCR ==='
+            echo "=== 4. Démarrage des conteneurs avec l'image GHCR ==="
             docker compose up -d medclinik-backend
 
-            echo '=== 5. Application des migrations Prisma en attente ==='
+            echo "=== 5. Application des migrations Prisma en attente ==="
             docker compose exec -T medclinik-backend npx prisma migrate deploy
 
-            echo '=== 6. Vérification de santé post-déploiement (30s max) ==='
+            echo "=== 6. Vérification de santé post-déploiement (30s max) ==="
             HEALTHCHECK_OK=0
-            for i in \$(seq 1 6); do
-              HTTP_STATUS=\$(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3010/api/consultations || true)
-              if [ \"\$HTTP_STATUS\" = \"401\" ] || [ \"\$HTTP_STATUS\" = \"200\" ]; then
-                echo \"Santé API confirmée (HTTP \$HTTP_STATUS) au bout de \$((i * 5))s\"
+            for i in $(seq 1 6); do
+              HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3010/api/consultations || true)
+              if [ "$HTTP_STATUS" = "401" ] || [ "$HTTP_STATUS" = "200" ]; then
+                echo "Santé API confirmée (HTTP $HTTP_STATUS) au bout de $((i * 5))s"
                 HEALTHCHECK_OK=1
                 break
               fi
-              echo \"En attente du démarrage de l'API (tentative \$i/6, réponse HTTP: '\$HTTP_STATUS')...\"
+              echo "En attente du démarrage de l'API (tentative $i/6, réponse HTTP: '$HTTP_STATUS')..."
               sleep 5
             done
 
-            if [ \$HEALTHCHECK_OK -ne 1 ]; then
-              echo 'ERREUR CRITIQUE: Le conteneur backend ne répond pas dans le délai de 30 secondes !'
+            if [ $HEALTHCHECK_OK -ne 1 ]; then
+              echo "ERREUR CRITIQUE: Le conteneur backend ne répond pas dans le délai de 30 secondes !"
               exit 1
             fi
 
-            echo '=== Déploiement CI/CD GHCR MedClinik terminé avec succès ==='
-          "
+            echo "=== Déploiement CI/CD GHCR MedClinik terminé avec succès ==="
