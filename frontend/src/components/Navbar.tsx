@@ -51,7 +51,6 @@ export const Navbar: React.FC = () => {
         ...base,
         { href: '/consultation', label: 'Consultations (DMP)' },
         { href: '/stock', label: 'Pharmacie' },
-        { href: '/reports', label: 'Rapports' },
       ];
     }
     return base;

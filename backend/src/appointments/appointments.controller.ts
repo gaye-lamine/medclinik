@@ -49,9 +49,10 @@ export class AppointmentsController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN, Role.NURSE, Role.CASHIER)
-  @ApiOperation({ summary: 'Mettre à jour un rendez-vous' })
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Mettre à jour un rendez-vous (ADMIN uniquement)' })
   @ApiResponse({ status: 200, description: 'Rendez-vous mis à jour' })
+  @ApiResponse({ status: 403, description: 'Accès refusé (NURSE/CASHIER)' })
   @ApiResponse({ status: 404, description: 'Rendez-vous introuvable' })
   async update(@Param('id') id: string, @Body() body: UpdateAppointmentDto) {
     return this.appointmentsService.update(id, body);

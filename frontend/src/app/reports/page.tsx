@@ -58,10 +58,13 @@ export default function ReportsPage() {
   }, [apiFetch]);
 
   useEffect(() => {
-    if (token) {
+    if (token && user?.role === 'ADMIN') {
       fetchReportsData();
+    } else if (token && user?.role !== 'ADMIN') {
+      setLoading(false);
+      setError('Accès restreint aux administrateurs uniquement. Les rapports contiennent des données financières confidentielles.');
     }
-  }, [token, fetchReportsData]);
+  }, [token, user?.role, fetchReportsData]);
 
   const formatFCFA = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(amount);

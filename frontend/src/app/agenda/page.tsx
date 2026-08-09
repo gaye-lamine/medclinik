@@ -420,21 +420,26 @@ export default function AgendaPage() {
                   >
                     Admettre le Patient
                   </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleUpdateStatus(selectedApptDetail.id, 'COMPLETED')} 
-                    className="btn btn-success"
-                  >
-                    Confirmer Présence
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleUpdateStatus(selectedApptDetail.id, 'CANCELLED')} 
-                    className="btn btn-secondary"
-                    style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}
-                  >
-                    Annuler le RDV
-                  </button>
+                  {/* PUT /appointments/:id — ADMIN uniquement depuis l'Option A */}
+                  {user?.role === 'ADMIN' && (
+                    <>
+                      <button 
+                        type="button" 
+                        onClick={() => handleUpdateStatus(selectedApptDetail.id, 'COMPLETED')} 
+                        className="btn btn-success"
+                      >
+                        Confirmer Présence
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => handleUpdateStatus(selectedApptDetail.id, 'CANCELLED')} 
+                        className="btn btn-secondary"
+                        style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}
+                      >
+                        Annuler le RDV
+                      </button>
+                    </>
+                  )}
                 </>
               )}
               <button 
