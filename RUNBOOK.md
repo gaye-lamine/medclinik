@@ -131,3 +131,66 @@ await this.prisma.$transaction(
   { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
 );
 ```
+
+---
+
+## 7. 🔑 Politique de Rotation des Secrets JWT
+
+### 7.1 Historique des Rotations
+
+| Date | Secret | Raison | Opérateur |
+|---|---|---|---|
+| **2026-08-09 01:55 UTC** | `JWT_SECRET` | Audit : valeur mnémonique faible (`medclinik_secret_key_2026_super_secure`, 38 chars), identique dev=prod depuis création du projet | Antigravity |
+
+**Prochaine rotation `JWT_SECRET` due :** 2026-11-09
+
+### 7.2 Politique de rotation recommandée
+
+| Secret | Fréquence minimale | Déclencheur immédiat |
+|---|---|---|
+| `JWT_SECRET` | **Trimestrielle** (tous les 3 mois) | Fuite suspectée, départ développeur |
+| `DATABASE_URL` (password) | Semestrielle | Fuite suspectée, accès non autorisé |
+| `WAVE_WEBHOOK_SECRET` | Annuelle ou si incident | Compromission webhook |
+| `WAVE_API_KEY` | Selon politique Wave | Fuite suspectée |
+
+### 7.3 Procédure standard de rotation `JWT_SECRET`
+
+```bash
+# Sur le VPS en tant que deployer
+ENV_FILE="/var/www/html/apps/medclinik/backend/.env"
+COMPOSE_FILE="/var/www/html/apps/medclinik/backend/docker-compose.yml"
+TIMESTAMP=$(date +%Y%m%d%H%M%S)
+
+# 1. Backup horodaté OBLIGATOIRE avant toute modification
+cp "$ENV_FILE" "${ENV_FILE}.backup-pre-jwt-rotation-${TIMESTAMP}"
+
+# 2. Génération d'un nouveau secret fort (128 chars hex = 64 bytes d'entropie)
+NEW_SECRET=$(node -e "const c=require('crypto'); console.log(c.randomBytes(64).toString('hex'));")
+
+# 3. Remplacement dans le .env de prod
+sed -i "s|JWT_SECRET=.*|JWT_SECRET=\"${NEW_SECRET}\"|" "$ENV_FILE"
+
+# 4. Vérification longueur (doit afficher 141+)
+grep "JWT_SECRET=" "$ENV_FILE" | wc -c
+
+# 5. Redémarrage (invalide tous les JWT actifs)
+docker compose -f "$COMPOSE_FILE" restart medclinik-backend
+
+# 6. Health check
+sleep 5
+curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3010/api/auth/login \
+  -H "Content-Type: application/json" -d '{}'
+# → 400 = API opérationnelle
+
+# 7. Mettre à jour le .env dev local avec une valeur DIFFÉRENTE de la prod
+```
+
+> ⚠️ **Règle absolue** : les secrets dev et prod ne doivent **jamais** être identiques.
+
+### 7.4 Rollback d'urgence post-rotation
+
+```bash
+# UNIQUEMENT urgence technique — JAMAIS si la raison est une fuite confirmée
+cp "${ENV_FILE}.backup-pre-jwt-rotation-YYYYMMDDHHMMSS" "$ENV_FILE"
+docker compose -f "$COMPOSE_FILE" restart medclinik-backend
+```
