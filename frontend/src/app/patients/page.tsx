@@ -19,7 +19,7 @@ interface Patient {
 }
 
 export default function PatientsPage() {
-  const { apiFetch, token } = useAuth();
+  const { user, apiFetch } = useAuth();
   const { toast } = useToast();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,10 +58,10 @@ export default function PatientsPage() {
   }, [apiFetch]);
 
   useEffect(() => {
-    if (token) {
+    if (user) {
       fetchPatients(searchQuery);
     }
-  }, [token, searchQuery, fetchPatients]);
+  }, [user, searchQuery, fetchPatients]);
 
   const handleCreatePatient = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -28,7 +28,7 @@ interface QueueEntry {
 }
 
 export default function QueuePage() {
-  const { user, apiFetch, token } = useAuth();
+  const { user, apiFetch } = useAuth();
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export default function QueuePage() {
 
   // WebSocket Live Sync
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
     
     fetchQueue();
 
@@ -84,7 +84,7 @@ export default function QueuePage() {
     return () => {
       socket.disconnect();
     };
-  }, [token, fetchQueue]);
+  }, [user, fetchQueue]);
 
   // Search patients
   const handleSearch = async (query: string) => {

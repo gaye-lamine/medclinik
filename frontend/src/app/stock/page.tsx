@@ -15,7 +15,7 @@ interface StockItem {
 }
 
 export default function StockPage() {
-  const { user, apiFetch, token } = useAuth();
+  const { user, apiFetch } = useAuth();
   const { toast } = useToast();
   
   // Tabs management
@@ -61,10 +61,10 @@ export default function StockPage() {
   }, [apiFetch]);
 
   useEffect(() => {
-    if (token) {
+    if (user) {
       fetchStock();
     }
-  }, [token, fetchStock]);
+  }, [user, fetchStock]);
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

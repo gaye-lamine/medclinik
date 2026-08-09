@@ -31,7 +31,7 @@ interface Appointment {
 }
 
 export default function AgendaPage() {
-  const { user, apiFetch, token } = useAuth();
+  const { user, apiFetch } = useAuth();
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -78,10 +78,10 @@ export default function AgendaPage() {
   }, [apiFetch, formDoctorId]);
 
   useEffect(() => {
-    if (token) {
+    if (user) {
       fetchAgendaData();
     }
-  }, [token, fetchAgendaData]);
+  }, [user, fetchAgendaData]);
 
   // Generate Current Week days (Monday to Saturday)
   const getWeekDays = () => {

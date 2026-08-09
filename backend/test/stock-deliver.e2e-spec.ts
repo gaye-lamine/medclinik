@@ -4,6 +4,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { StockService } from '../src/stock/stock.service';
 import { InventoryException } from '../src/common/exceptions/inventory.exception';
+import cookieParser from 'cookie-parser';
 
 describe('StockService deliverPrescription Integration Tests (e2e)', () => {
   let app: INestApplication;
@@ -20,6 +21,7 @@ describe('StockService deliverPrescription Integration Tests (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.use(cookieParser());
     await app.init();
 
     prisma = app.get(PrismaService);
