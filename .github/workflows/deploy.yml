@@ -64,10 +64,13 @@ jobs:
 
       - name: Déploiement via SSH sur le VPS (Utilisateur 'deployer')
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          CR_PAT: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: CR_PAT
           port: 22
           timeout: 10m
           command_timeout: 10m
@@ -92,8 +95,9 @@ jobs:
             fi
             echo "Sauvegarde réussie : ${BACKUP_FILE} ($(wc -c < "${BACKUP_FILE}") octets)"
 
-            echo "=== 3. Récupération de l'image pré-construite depuis GHCR (Pull) ==="
+            echo "=== 3. Authentification GHCR & Récupération de l'image pré-construite (Pull) ==="
             cd backend
+            echo "$CR_PAT" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
             docker compose pull medclinik-backend
 
             echo "=== 4. Démarrage des conteneurs avec l'image GHCR ==="
