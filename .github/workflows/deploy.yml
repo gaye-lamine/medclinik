@@ -42,10 +42,65 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ─── Job 2 : Déploiement Ultra-Rapide sur VPS (Zero Build Locale) ───────────
+  # ─── Job 2 : Tests d'Intégration E2E sur PostgreSQL Éphémère (Bloquant) ─────
+  test:
+    name: Run E2E Integration Tests (Blocking)
+    needs: build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_USER: medclinik_user
+          POSTGRES_PASSWORD: medclinik_password
+          POSTGRES_DB: medclinik_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        env:
+          DATABASE_URL: postgresql://medclinik_user:medclinik_password@localhost:5432/medclinik_test_db?schema=public
+        run: npx prisma generate
+
+      - name: Deploy Prisma Schema to Ephemeral PostgreSQL
+        env:
+          DATABASE_URL: postgresql://medclinik_user:medclinik_password@localhost:5432/medclinik_test_db?schema=public
+        run: npx prisma migrate deploy
+
+      - name: Run E2E Integration Tests
+        env:
+          DATABASE_URL: postgresql://medclinik_user:medclinik_password@localhost:5432/medclinik_test_db?schema=public
+          JWT_SECRET: medclinik_secret_key_2026_super_secure
+        run: npx cross-env DATABASE_URL="postgresql://medclinik_user:medclinik_password@localhost:5432/medclinik_test_db?schema=public" jest --config ./test/jest-e2e.json --runInBand
+
+  # ─── Job 3 : Déploiement Ultra-Rapide sur VPS (Déclenché UNIQUEMENT si Tests OK) ───
   deploy:
     name: Deploy to VPS
-    needs: build
+    needs: [build, test]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
