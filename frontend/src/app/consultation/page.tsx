@@ -754,7 +754,7 @@ export default function ConsultationPage() {
                     <span style={{ fontSize: '0.8rem', color: selectedConsult?.status === 'PENDING' ? 'var(--warning)' : 'var(--text-muted)', fontWeight: '500' }}>
                       {selectedConsult?.status === 'PENDING'
                         ? "⚠️ En attente de règlement à la caisse avant ouverture du dossier."
-                        : (selectedConsult?.status === 'SCHEDULED' || selectedConsult?.status === 'PAID')
+                        : selectedConsult?.status === 'PAID'
                         ? "ℹ️ La consultation doit d'abord être démarrée par le praticien."
                         : selectedConsult?.status === 'COMPLETED'
                         ? "✓ Cette consultation est déjà clôturée et archivée dans le DMP."
