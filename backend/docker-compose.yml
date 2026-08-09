@@ -1,8 +1,6 @@
 services:
   medclinik-backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/gaye-lamine/medclinik-backend:latest
     container_name: medclinik-backend
     restart: always
     labels:
@@ -65,4 +63,3 @@ services:
 volumes:
   medclinik_postgres_data:
   medclinik_redis_data:
-
