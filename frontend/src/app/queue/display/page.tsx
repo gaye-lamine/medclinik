@@ -25,7 +25,7 @@ interface QueueEntry {
 }
 
 export default function QueueDisplayPage() {
-  const { apiFetch, token } = useAuth();
+  const { user, apiFetch } = useAuth();
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [activeCall, setActiveCall] = useState<QueueEntry | null>(null);
   const [showCallOverlay, setShowCallOverlay] = useState(false);
@@ -136,7 +136,7 @@ export default function QueueDisplayPage() {
 
   // Socket setup
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
     
     // Initial fetch
     fetchQueue();
@@ -158,7 +158,7 @@ export default function QueueDisplayPage() {
     return () => {
       socket.disconnect();
     };
-  }, [token, fetchQueue]);
+  }, [user, fetchQueue]);
 
   // Lists split
   const callingEntries = queue.filter(e => e.status === 'CALLING' || e.status === 'IN_CONSULTATION');

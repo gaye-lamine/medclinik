@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import 'dotenv/config';
 import * as express from 'express';
+import cookieParser from 'cookie-parser';
 import { join } from 'path';
 import * as fs from 'fs';
 
@@ -27,11 +28,17 @@ async function bootstrap() {
   );
 
   app.useGlobalFilters(new GlobalExceptionFilter());
-  const corsOrigin = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*';
+  const corsOrigin = process.env.CORS_ORIGIN?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  if (!corsOrigin?.length) {
+    throw new Error('CORS_ORIGIN must list the allowed frontend origins.');
+  }
   app.enableCors({
     origin: corsOrigin,
     credentials: true,
   });
+  app.use(cookieParser());
 
   // Ensure uploads directory exists
   const uploadsDir = join(process.cwd(), 'uploads');

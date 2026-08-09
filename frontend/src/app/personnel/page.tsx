@@ -15,7 +15,7 @@ interface StaffUser {
 }
 
 export default function PersonnelPage() {
-  const { user, apiFetch, token } = useAuth();
+  const { user, apiFetch } = useAuth();
   const { toast } = useToast();
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,12 +46,12 @@ export default function PersonnelPage() {
   }, [apiFetch]);
 
   useEffect(() => {
-    if (token && user?.role === 'ADMIN') {
+    if (user?.role === 'ADMIN') {
       fetchStaff();
     } else {
       setLoading(false);
     }
-  }, [token, user, fetchStaff]);
+  }, [user, fetchStaff]);
 
   const handleDelete = async (id: string, name: string) => {
     if (id === user?.id) {

@@ -12,13 +12,11 @@ export class JwtAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
+    const token = request.cookies?.access_token;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       throw new UnauthorizedException('Jeton de connexion requis');
     }
-
-    const token = authHeader.split(' ')[1];
     try {
       const payload = this.jwtService.verify(token);
       if (!payload.is2faComplete) {

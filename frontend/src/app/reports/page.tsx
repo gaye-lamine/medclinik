@@ -33,7 +33,7 @@ interface ReportsData {
 }
 
 export default function ReportsPage() {
-  const { user, apiFetch, token } = useAuth();
+  const { user, apiFetch } = useAuth();
   const [data, setData] = useState<ReportsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,13 +58,13 @@ export default function ReportsPage() {
   }, [apiFetch]);
 
   useEffect(() => {
-    if (token && user?.role === 'ADMIN') {
+    if (user?.role === 'ADMIN') {
       fetchReportsData();
-    } else if (token && user?.role !== 'ADMIN') {
+    } else if (user) {
       setLoading(false);
       setError('Accès restreint aux administrateurs uniquement. Les rapports contiennent des données financières confidentielles.');
     }
-  }, [token, user?.role, fetchReportsData]);
+  }, [user, fetchReportsData]);
 
   const formatFCFA = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(amount);

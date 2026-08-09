@@ -5,6 +5,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
+import cookieParser from 'cookie-parser';
 
 describe('RBAC Authorization Guards (e2e)', () => {
   let app: INestApplication;
@@ -29,6 +30,7 @@ describe('RBAC Authorization Guards (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.use(cookieParser());
     await app.init();
 
     prisma = app.get(PrismaService);
@@ -141,14 +143,14 @@ describe('RBAC Authorization Guards (e2e)', () => {
   it('1. CASHIER tentant GET /api/consultations -> 403 Forbidden', async () => {
     await request(app.getHttpServer())
       .get('/consultations')
-      .set('Authorization', `Bearer ${cashierToken}`)
+      .set('Cookie', `access_token=${cashierToken}`)
       .expect(403);
   });
 
   it('2. NURSE tentant POST /api/stock (création d un article en stock) -> 403 Forbidden', async () => {
     await request(app.getHttpServer())
       .post('/stock')
-      .set('Authorization', `Bearer ${nurseToken}`)
+      .set('Cookie', `access_token=${nurseToken}`)
       .send({
         name: 'Test Paracetamol',
         quantity: 100,
@@ -164,13 +166,13 @@ describe('RBAC Authorization Guards (e2e)', () => {
 
     await request(app.getHttpServer())
       .post(`/billing/refund/${fakeBillId}`)
-      .set('Authorization', `Bearer ${cashierToken}`)
+      .set('Cookie', `access_token=${cashierToken}`)
       .send({ reason: 'Tentative non autorisée' })
       .expect(403);
 
     await request(app.getHttpServer())
       .post(`/billing/refund/${fakeBillId}`)
-      .set('Authorization', `Bearer ${doctorToken}`)
+      .set('Cookie', `access_token=${doctorToken}`)
       .send({ reason: 'Tentative non autorisée' })
       .expect(403);
   });
@@ -178,7 +180,7 @@ describe('RBAC Authorization Guards (e2e)', () => {
   it('4. NURSE tentant PUT /api/appointments/:id -> 403 Forbidden', async () => {
     await request(app.getHttpServer())
       .put(`/appointments/${testApptForPut.id}`)
-      .set('Authorization', `Bearer ${nurseToken}`)
+      .set('Cookie', `access_token=${nurseToken}`)
       .send({ status: 'CANCELLED' })
       .expect(403);
   });
@@ -186,26 +188,24 @@ describe('RBAC Authorization Guards (e2e)', () => {
   it('5. NURSE effectuant POST /api/appointments/admit/:id -> Succès (201 / patient admis)', async () => {
     await request(app.getHttpServer())
       .post(`/appointments/admit/${testApptForAdmit.id}`)
-      .set('Authorization', `Bearer ${nurseToken}`)
+      .set('Cookie', `access_token=${nurseToken}`)
       .expect(201);
   });
 
   it('6. Rôles non-ADMIN (NURSE / CASHIER / DOCTOR) tentant GET /reports/dashboard -> 403 Forbidden', async () => {
     await request(app.getHttpServer())
       .get('/reports/dashboard')
-      .set('Authorization', `Bearer ${nurseToken}`)
+      .set('Cookie', `access_token=${nurseToken}`)
       .expect(403);
 
     await request(app.getHttpServer())
       .get('/reports/dashboard')
-      .set('Authorization', `Bearer ${cashierToken}`)
+      .set('Cookie', `access_token=${cashierToken}`)
       .expect(403);
 
     await request(app.getHttpServer())
       .get('/reports/dashboard')
-      .set('Authorization', `Bearer ${doctorToken}`)
+      .set('Cookie', `access_token=${doctorToken}`)
       .expect(403);
   });
 });
-
-

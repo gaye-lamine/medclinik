@@ -37,7 +37,7 @@ interface VitalRecord {
 }
 
 export default function ConstantesPage() {
-  const { user, apiFetch, token } = useAuth();
+  const { user, apiFetch } = useAuth();
   const [vitalsQueue, setVitalsQueue] = useState<QueueEntry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<QueueEntry | null>(null);
   const [history, setHistory] = useState<VitalRecord[]>([]);
@@ -70,10 +70,10 @@ export default function ConstantesPage() {
   }, [apiFetch]);
 
   useEffect(() => {
-    if (token) {
+    if (user) {
       fetchVitalsQueue();
     }
-  }, [token, fetchVitalsQueue]);
+  }, [user, fetchVitalsQueue]);
 
   // Load history when selected patient changes
   useEffect(() => {

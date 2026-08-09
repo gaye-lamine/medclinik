@@ -5,7 +5,6 @@ import { useAuth, API_URL } from '../../components/AuthContext';
 import QRCode from 'qrcode';
 
 // Préfixe REST pour les appels HTTP directs (les URLs /uploads utilisent API_URL)
-const API_REST_URL = `${API_URL}/api`;
 import { useToast } from '../../components/ToastContext';
 import { Logo } from '../../components/Logo';
 import { generatePrescriptionPDF } from '../../utils/pdfGenerator';
@@ -63,7 +62,7 @@ interface Consultation {
 }
 
 export default function ConsultationPage() {
-  const { user, apiFetch, token } = useAuth();
+  const { user, apiFetch } = useAuth();
   const { toast } = useToast();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [selectedConsult, setSelectedConsult] = useState<Consultation | null>(null);
@@ -117,10 +116,10 @@ export default function ConsultationPage() {
   }, [apiFetch]);
 
   useEffect(() => {
-    if (token) {
+    if (user) {
       fetchConsultations();
     }
-  }, [token, fetchConsultations]);
+  }, [user, fetchConsultations]);
 
   // Handle specialty template pre-fills
   const applyTemplate = (type: string) => {
@@ -194,19 +193,11 @@ export default function ConsultationPage() {
 
     try {
       setUploading(true);
-      const response = await fetch(`${API_REST_URL}/files/patient/${selectedConsult.patientId}`, {
+      const newFile = await apiFetch(`/files/patient/${selectedConsult.patientId}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error('Erreur lors du téléversement du fichier.');
-      }
-
-      const newFile = await response.json();
       setPatientFiles((prev) => [newFile, ...prev]);
       setFileCustomName('');
       form.reset();

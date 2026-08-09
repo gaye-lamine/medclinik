@@ -9,7 +9,7 @@ import { SmsModule } from '../sms/sms.module';
     SmsModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'medclinik_secret_key_2026_super_secure',
-      signOptions: { expiresIn: '1d' },
+      signOptions: { expiresIn: '30m' },
     }),
   ],
   controllers: [AuthController],
