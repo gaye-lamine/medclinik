@@ -189,5 +189,23 @@ describe('RBAC Authorization Guards (e2e)', () => {
       .set('Authorization', `Bearer ${nurseToken}`)
       .expect(201);
   });
+
+  it('6. Rôles non-ADMIN (NURSE / CASHIER / DOCTOR) tentant GET /reports/dashboard -> 403 Forbidden', async () => {
+    await request(app.getHttpServer())
+      .get('/reports/dashboard')
+      .set('Authorization', `Bearer ${nurseToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get('/reports/dashboard')
+      .set('Authorization', `Bearer ${cashierToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get('/reports/dashboard')
+      .set('Authorization', `Bearer ${doctorToken}`)
+      .expect(403);
+  });
 });
+
 
