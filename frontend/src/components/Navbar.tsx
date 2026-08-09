@@ -15,8 +15,7 @@ export const Navbar: React.FC = () => {
   };
 
   const getNavLinks = (role?: string) => {
-    const base = [
-      { href: '/', label: 'Tableau de bord' },
+    const commonLinks = [
       { href: '/agenda', label: 'Agenda' },
       { href: '/queue', label: 'File d\'attente' },
       { href: '/patients', label: 'Patients' },
@@ -24,7 +23,8 @@ export const Navbar: React.FC = () => {
 
     if (role === 'ADMIN') {
       return [
-        ...base,
+        { href: '/', label: 'Tableau de bord' },
+        ...commonLinks,
         { href: '/personnel', label: 'Personnel' },
         { href: '/caisse', label: 'Caisse & Factures' },
         { href: '/constantes', label: 'Constantes Vitales' },
@@ -35,32 +35,36 @@ export const Navbar: React.FC = () => {
     }
     if (role === 'CASHIER') {
       return [
-        ...base,
+        ...commonLinks,
         { href: '/caisse', label: 'Caisse & Factures' },
       ];
     }
     if (role === 'NURSE') {
       return [
-        ...base,
+        ...commonLinks,
         { href: '/constantes', label: 'Constantes Vitales' },
         { href: '/stock', label: 'Pharmacie' },
       ];
     }
     if (role === 'DOCTOR') {
       return [
-        ...base,
+        ...commonLinks,
         { href: '/consultation', label: 'Consultations (DMP)' },
         { href: '/stock', label: 'Pharmacie' },
       ];
     }
-    return base;
+    return commonLinks;
   };
 
   const navLinks = getNavLinks(user?.role);
+  const homeHref = user?.role === 'NURSE' ? '/queue'
+    : user?.role === 'CASHIER' ? '/caisse'
+    : user?.role === 'DOCTOR' ? '/consultation'
+    : '/';
 
   return (
     <header className="navbar">
-      <Link href="/" className="nav-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+      <Link href={homeHref} className="nav-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
         <Logo size={28} mode="neon" />
         <span>Med<span>Clinik</span></span>
       </Link>

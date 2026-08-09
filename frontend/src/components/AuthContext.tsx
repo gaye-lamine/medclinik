@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 export type Role = 'ADMIN' | 'DOCTOR' | 'NURSE' | 'CASHIER';
 
@@ -225,7 +225,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
   };
 
-  const apiFetch = async (path: string, options: RequestInit = {}) => {
+  const apiFetch = useCallback(async (path: string, options: RequestInit = {}) => {
     const headers = {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -250,7 +250,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     return res.json().catch(() => ({}));
-  };
+  }, [token]);
 
   return (
     <AuthContext.Provider
