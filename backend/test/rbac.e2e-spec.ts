@@ -19,6 +19,10 @@ describe('RBAC Authorization Guards (e2e)', () => {
   let nurseUser: any;
   let doctorUser: any;
 
+  let testPatient: any;
+  let testApptForPut: any;
+  let testApptForAdmit: any;
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -80,9 +84,52 @@ describe('RBAC Authorization Guards (e2e)', () => {
       role: doctorUser.role,
       is2faComplete: true,
     });
+
+    // Fixtures pour tests rendez-vous
+    testPatient = await prisma.patient.create({
+      data: {
+        code: `P-RBAC-${timestamp}`,
+        firstName: 'Awa',
+        lastName: 'Ndiaye',
+        dateOfBirth: new Date('1995-03-20'),
+        gender: 'F',
+        phoneNumber: '+221770000000',
+      },
+    });
+
+    testApptForPut = await prisma.appointment.create({
+      data: {
+        patientId: testPatient.id,
+        doctorId: doctorUser.id,
+        dateTime: new Date(Date.now() + 86400000),
+        status: 'SCHEDULED',
+        specialty: 'Général',
+      },
+    });
+
+    testApptForAdmit = await prisma.appointment.create({
+      data: {
+        patientId: testPatient.id,
+        doctorId: doctorUser.id,
+        dateTime: new Date(Date.now() + 172800000),
+        status: 'SCHEDULED',
+        specialty: 'Général',
+      },
+    });
   });
 
   afterAll(async () => {
+    if (testApptForAdmit) {
+      await prisma.consultation.deleteMany({ where: { appointmentId: testApptForAdmit.id } });
+      await prisma.billing.deleteMany({ where: { appointmentId: testApptForAdmit.id } });
+      await prisma.appointment.deleteMany({ where: { id: testApptForAdmit.id } });
+    }
+    if (testApptForPut) {
+      await prisma.appointment.deleteMany({ where: { id: testApptForPut.id } });
+    }
+    if (testPatient) {
+      await prisma.patient.deleteMany({ where: { id: testPatient.id } });
+    }
     await prisma.user.deleteMany({
       where: {
         id: { in: [cashierUser.id, nurseUser.id, doctorUser.id] },
@@ -127,4 +174,20 @@ describe('RBAC Authorization Guards (e2e)', () => {
       .send({ reason: 'Tentative non autorisée' })
       .expect(403);
   });
+
+  it('4. NURSE tentant PUT /api/appointments/:id -> 403 Forbidden', async () => {
+    await request(app.getHttpServer())
+      .put(`/appointments/${testApptForPut.id}`)
+      .set('Authorization', `Bearer ${nurseToken}`)
+      .send({ status: 'CANCELLED' })
+      .expect(403);
+  });
+
+  it('5. NURSE effectuant POST /api/appointments/admit/:id -> Succès (201 / patient admis)', async () => {
+    await request(app.getHttpServer())
+      .post(`/appointments/admit/${testApptForAdmit.id}`)
+      .set('Authorization', `Bearer ${nurseToken}`)
+      .expect(201);
+  });
 });
+
