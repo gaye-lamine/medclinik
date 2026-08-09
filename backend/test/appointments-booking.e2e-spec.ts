@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ConflictException } from '@nestjs/common';
+import { INestApplication, ConflictException, BadRequestException } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AppointmentsService } from '../src/appointments/appointments.service';
@@ -95,4 +95,18 @@ describe('Anti-Double-Booking Appointments (e2e)', () => {
     expect(appt2).toBeDefined();
     expect(appt2.status).toBe('SCHEDULED');
   });
+
+  it('4. Tentative de création d un RDV dans le passé -> 400 BadRequestException', async () => {
+    const pastTime = new Date('2020-01-01T10:00:00.000Z');
+
+    await expect(
+      appointmentsService.create({
+        patientId: testPatientId,
+        doctorId: testDoctorId,
+        dateTime: pastTime.toISOString(),
+        specialty: 'Cardiologie',
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
 });
+

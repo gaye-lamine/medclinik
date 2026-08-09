@@ -368,11 +368,30 @@ export default function StockPage() {
                   <tbody>
                     {(searchedRx.medicines as any[]).map((med, idx) => (
                       <tr key={idx} style={styles.trRow}>
-                        <td style={styles.td}><strong>{med.name}</strong></td>
+                        <td style={styles.td}>
+                          <strong>{med.name}</strong>
+                          {med.requiredQuantity > 1 && (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                              (Qté : {med.requiredQuantity})
+                            </span>
+                          )}
+                        </td>
                         <td style={styles.td}>{med.dosage}</td>
                         <td style={styles.td}>{med.duration}</td>
                         <td style={styles.td}>
-                          <span style={{ color: 'var(--success)', fontWeight: '600' }}>Disponible (Dépôt Clinique)</span>
+                          {med.stockStatus === 'AVAILABLE' ? (
+                            <span style={{ color: 'var(--success)', fontWeight: '600' }}>
+                              ✓ Disponible ({med.availableQuantity} en stock)
+                            </span>
+                          ) : med.stockStatus === 'INSUFFICIENT_STOCK' ? (
+                            <span style={{ color: 'var(--warning)', fontWeight: '600' }}>
+                              ⚠️ Stock Insuffisant ({med.availableQuantity} dispo / {med.requiredQuantity} requis)
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--danger)', fontWeight: '600' }}>
+                              ❌ Indisponible (Non trouvé en stock)
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -384,20 +403,33 @@ export default function StockPage() {
                 <div style={styles.rxDeliverAction}>
                   <div style={styles.billingEstimate}>
                     <span>Estimation Facturation Pharmacie :</span>
-                    <strong style={{ fontSize: '1.2rem', color: 'var(--primary-color)' }}>{searchedRx.medicines.length * 3000} FCFA</strong>
+                    <strong style={{ fontSize: '1.2rem', color: 'var(--primary-color)' }}>
+                      {searchedRx.medicines.length * 3000} FCFA
+                    </strong>
                     {searchedRx.consultation.patient.mutuelleName && (
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        (Reste à charge patient : {searchedRx.medicines.length * 3000 * (1 - searchedRx.consultation.patient.insuranceCoverageShare/100)} FCFA)
+                        (Reste à charge patient : {Math.round(searchedRx.medicines.length * 3000 * (1 - (searchedRx.consultation.patient.insuranceCoverageShare || 0) / 100))} FCFA)
                       </span>
                     )}
                   </div>
+
+                  {searchedRx.isFullyInStock === false && (
+                    <div style={{ color: 'var(--danger)', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+                      ⚠️ Impossible de délivrer : un ou plusieurs médicaments sont indisponibles ou en rupture de stock.
+                    </div>
+                  )}
+
                   <button
                     onClick={handleDeliverRx}
-                    disabled={deliveringRx}
-                    className="btn btn-success"
+                    disabled={deliveringRx || searchedRx.isFullyInStock === false}
+                    className={searchedRx.isFullyInStock === false ? 'btn btn-secondary' : 'btn btn-success'}
                     style={{ padding: '0.75rem 1.5rem' }}
                   >
-                    {deliveringRx ? 'Délivrance...' : 'Valider & Délivrer les médicaments'}
+                    {deliveringRx
+                      ? 'Délivrance...'
+                      : searchedRx.isFullyInStock === false
+                      ? 'Indisponible (Rupture stock)'
+                      : 'Valider & Délivrer les médicaments'}
                   </button>
                 </div>
               )}

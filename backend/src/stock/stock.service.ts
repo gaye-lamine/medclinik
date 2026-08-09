@@ -63,7 +63,49 @@ export class StockService {
     if (!rx) {
       throw new NotFoundException('Ordonnance introuvable avec ce code RX.');
     }
-    return rx;
+
+    const meds = (rx.medicines as any[]) || [];
+    const stockItems = await this.prisma.stockItem.findMany();
+
+    const medicinesWithStock = meds.map((med) => {
+      let stockItem: any = null;
+      if (med.stockItemId) {
+        stockItem = stockItems.find((s) => s.id === med.stockItemId);
+      }
+      if (!stockItem && med.name) {
+        const firstWord = med.name.split(' ')[0].toLowerCase();
+        stockItem = stockItems.find((s) => s.name.toLowerCase().includes(firstWord));
+      }
+
+      const reqQty = med.quantity ? parseFloat(med.quantity) : 1;
+      let stockStatus = 'AVAILABLE';
+      let availableQuantity = 0;
+
+      if (!stockItem) {
+        stockStatus = 'NOT_FOUND';
+      } else {
+        availableQuantity = stockItem.quantity;
+        if (stockItem.quantity < reqQty) {
+          stockStatus = 'INSUFFICIENT_STOCK';
+        }
+      }
+
+      return {
+        ...med,
+        stockStatus, // 'AVAILABLE' | 'INSUFFICIENT_STOCK' | 'NOT_FOUND'
+        stockItemName: stockItem ? stockItem.name : null,
+        availableQuantity,
+        requiredQuantity: reqQty,
+      };
+    });
+
+    const isFullyInStock = medicinesWithStock.length > 0 && medicinesWithStock.every((m) => m.stockStatus === 'AVAILABLE');
+
+    return {
+      ...rx,
+      medicines: medicinesWithStock,
+      isFullyInStock,
+    };
   }
 
   async deliverPrescription(id: string) {
@@ -132,7 +174,7 @@ export class StockService {
     const totalAmount = meds.length * pricePerMed;
     const patient = rx.consultation.patient;
     const coverage = patient.insuranceCoverageShare || 0;
-    const insuranceShare = (totalAmount * coverage) / 100;
+    const insuranceShare = Math.round((totalAmount * coverage) / 100);
     const patientShare = totalAmount - insuranceShare;
 
     // 3. Exécution atomique via une transaction Prisma ($transaction)

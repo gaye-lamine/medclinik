@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
@@ -76,6 +76,11 @@ export class AppointmentsService {
     notes?: string;
   }) {
     const start = new Date(data.dateTime);
+
+    // Contrôle de date passée : Rejeter (400) si la date est antérieure à l'heure actuelle (marge de 60s pour la tolérance d'horloge)
+    if (start.getTime() < Date.now() - 60_000) {
+      throw new BadRequestException('La date du rendez-vous ne peut pas être dans le passé.');
+    }
 
     // M5 — Anti-double-booking : détection d'overlap bidirectionnel
     const DURATION_MS =

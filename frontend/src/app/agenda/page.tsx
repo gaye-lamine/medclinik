@@ -537,6 +537,7 @@ export default function AgendaPage() {
                   <input
                     type="datetime-local"
                     required
+                    min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                     value={formDateTime}
                     onChange={(e) => setFormDateTime(e.target.value)}
                     className="form-input"

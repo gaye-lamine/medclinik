@@ -19,10 +19,12 @@ export function calculateInsuranceShare(
   coveragePercent: number,
 ): InsuranceShareResult {
   const coverage = Math.max(0, Math.min(100, coveragePercent));
-  const insuranceShare = (amount * coverage) / 100;
-  const patientShare = amount - insuranceShare;
+  const roundedAmount = Math.round(amount);
+  const rawInsuranceShare = (roundedAmount * coverage) / 100;
+  const insuranceShare = Math.round(rawInsuranceShare);
+  const patientShare = roundedAmount - insuranceShare;
   return {
-    amount,
+    amount: roundedAmount,
     insuranceCoverageShare: coverage,
     insuranceShare,
     patientShare,
