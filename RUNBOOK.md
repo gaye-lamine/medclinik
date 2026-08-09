@@ -194,3 +194,20 @@ curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3010/api/auth/lo
 cp "${ENV_FILE}.backup-pre-jwt-rotation-YYYYMMDDHHMMSS" "$ENV_FILE"
 docker compose -f "$COMPOSE_FILE" restart medclinik-backend
 ```
+
+---
+
+## 8. 🛡️ Étape 8 : Architecture de Déploiement Frontend & Blocage Netlify via Playwright E2E
+
+Afin de garantir qu'aucun déploiement défaillant ne soit mis en ligne sur Netlify (Option c) :
+
+1. **Désactivation du déclenchement continu Netlify (`netlify.toml`) :**
+   Le fichier `netlify.toml` contient `[build.ignore] command = "exit 0"`. Netlify ne déploie plus automatiquement sur simple `git push origin main`.
+2. **Porte de vérité unique (GitHub Actions `frontend-ci.yml`) :**
+   À chaque push sur `main`, GitHub Actions :
+   - Installe et génère l'application Next.js (`npm run build`).
+   - Exécute les 4 suites de tests E2E Playwright (`navbar-rbac.spec.ts`, `role-redirection.spec.ts`, `agenda-rbac.spec.ts`, `logout-session-isolation.spec.ts`).
+3. **Déclenchement du Déploiement par Build Hook / CLI :**
+   Si et seulement si **100% des tests Playwright passent**, GitHub Actions déclenche l'URL secrète du Build Hook Netlify (`curl -s -X POST "${{ secrets.NETLIFY_BUILD_HOOK_URL }}"`) ou l'outil CLI Netlify (`npx netlify-cli deploy --dir=frontend/out --prod`).
+   Si un seul test échoue, le déploiement Netlify est **immédiatement bloqué** et la version précédente en ligne reste active sans interruption.
+

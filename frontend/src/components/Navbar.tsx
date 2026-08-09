@@ -43,6 +43,7 @@ export const Navbar: React.FC = () => {
       return [
         ...commonLinks,
         { href: '/constantes', label: 'Constantes Vitales' },
+        { href: '/consultation', label: 'Consultations (DMP)' },
         { href: '/stock', label: 'Pharmacie' },
       ];
     }

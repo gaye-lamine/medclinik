@@ -14,23 +14,40 @@ on:
       - 'frontend/**'
 
 jobs:
-  build-and-deploy:
-    name: Build and Validate Frontend
+  build-test-and-deploy:
+    name: Build, Run Playwright E2E Tests & Deploy to Netlify
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Dependencies
+      - name: Install Frontend Dependencies
         run: npm ci
+        working-directory: frontend
+
+      - name: Cache Playwright Chromium Binary
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install Playwright Chromium Browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+        working-directory: frontend
+
+      - name: Install Playwright Dependencies (if cached)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
         working-directory: frontend
 
       - name: Build Next.js Static Export
@@ -39,11 +56,24 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://medclinik.backnd-api.cloud' }}
 
-      - name: Deploy to Netlify
-        # Deploys only on push to main if Netlify credentials are set in GitHub secrets
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && env.NETLIFY_AUTH_TOKEN != '' && env.NETLIFY_SITE_ID != ''
-        run: npx netlify-cli deploy --dir=frontend/out --prod
+      - name: Run Playwright E2E Visual & RBAC Tests
+        run: npx playwright test
         working-directory: frontend
+        env:
+          CI: 'true'
+
+      - name: Trigger Netlify Production Deployment (Only if All Tests Pass)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          if [ -n "${{ secrets.NETLIFY_BUILD_HOOK_URL }}" ]; then
+            echo "🚀 All Playwright E2E Tests PASSED! Triggering Netlify Deployment via Build Hook..."
+            curl -s -X POST "${{ secrets.NETLIFY_BUILD_HOOK_URL }}"
+          elif [ -n "${{ secrets.NETLIFY_AUTH_TOKEN }}" ] && [ -n "${{ secrets.NETLIFY_SITE_ID }}" ]; then
+            echo "🚀 All Playwright E2E Tests PASSED! Deploying via Netlify CLI..."
+            npx netlify-cli deploy --dir=frontend/out --prod
+          else
+            echo "⚠️ No Netlify deployment secrets found (NETLIFY_BUILD_HOOK_URL or NETLIFY_AUTH_TOKEN). Build & Tests succeeded."
+          fi
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
