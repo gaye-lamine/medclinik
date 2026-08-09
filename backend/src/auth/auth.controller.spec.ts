@@ -17,7 +17,7 @@ describe('AuthController cookie session', () => {
     const controller = new AuthController(authService as any);
     const response = createResponse();
 
-    await expect(controller.login({ email: user.email, password: 'secret' }, { headers: {}, ip: '127.0.0.1' } as any, response as any))
+    await expect(controller.login({ email: user.email, password: 'secret' }, response as any))
       .resolves.toEqual({ requires2fa: false, user });
     expect(response.cookie).toHaveBeenCalledWith('access_token', accessToken, expect.objectContaining({
       httpOnly: true, secure: true, sameSite: 'none', maxAge: 30 * 60 * 1000, path: '/',
