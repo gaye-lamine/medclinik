@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueGateway } from '../queue/queue.gateway';
 import { InventoryException } from '../common/exceptions/inventory.exception';
+import { matchMedicineToStock } from '../utils/stock-matching.utils';
 
 @Injectable()
 export class StockService {
@@ -68,34 +69,13 @@ export class StockService {
     const stockItems = await this.prisma.stockItem.findMany();
 
     const medicinesWithStock = meds.map((med) => {
-      let stockItem: any = null;
-      if (med.stockItemId) {
-        stockItem = stockItems.find((s) => s.id === med.stockItemId);
-      }
-      if (!stockItem && med.name) {
-        const firstWord = med.name.split(' ')[0].toLowerCase();
-        stockItem = stockItems.find((s) => s.name.toLowerCase().includes(firstWord));
-      }
-
-      const reqQty = med.quantity ? parseFloat(med.quantity) : 1;
-      let stockStatus = 'AVAILABLE';
-      let availableQuantity = 0;
-
-      if (!stockItem) {
-        stockStatus = 'NOT_FOUND';
-      } else {
-        availableQuantity = stockItem.quantity;
-        if (stockItem.quantity < reqQty) {
-          stockStatus = 'INSUFFICIENT_STOCK';
-        }
-      }
-
+      const match = matchMedicineToStock(med, stockItems);
       return {
         ...med,
-        stockStatus, // 'AVAILABLE' | 'INSUFFICIENT_STOCK' | 'NOT_FOUND'
-        stockItemName: stockItem ? stockItem.name : null,
-        availableQuantity,
-        requiredQuantity: reqQty,
+        stockStatus: match.stockStatus,
+        stockItemName: match.stockItem ? match.stockItem.name : null,
+        availableQuantity: match.availableQuantity,
+        requiredQuantity: match.requiredQuantity,
       };
     });
 
@@ -128,45 +108,26 @@ export class StockService {
       throw new BadRequestException('Cette ordonnance ne contient aucun médicament.');
     }
 
-    // 1. Pré-vérification de la disponibilité de TOUS les articles en stock avant toute modification
+    const stockItems = await this.prisma.stockItem.findMany();
+
+    // 1. Pré-vérification de la disponibilité de TOUS les articles via l'utilitaire partagé matchMedicineToStock
     const stockDeductions: Array<{ stockItem: any; quantityToDeduct: number }> = [];
 
     for (const med of meds) {
-      let stockItem: any = null;
+      const match = matchMedicineToStock(med, stockItems);
 
-      // Priorité 1 : Recherche par ID d'article de stock explicite s'il existe dans le JSON
-      if (med.stockItemId) {
-        stockItem = await this.prisma.stockItem.findUnique({ where: { id: med.stockItemId } });
-      }
-
-      // Priorité 2 : Recherche par correspondance du nom exact ou premier mot
-      if (!stockItem && med.name) {
-        stockItem = await this.prisma.stockItem.findFirst({
-          where: {
-            name: {
-              contains: med.name.split(' ')[0],
-              mode: 'insensitive',
-            },
-          },
-        });
-      }
-
-      if (!stockItem) {
+      if (!match.stockItem) {
         throw new NotFoundException(`Médicament "${med.name}" introuvable dans l'inventaire de la pharmacie.`);
       }
 
-      // Quantité requise : lue du champ explicit `quantity` ou calculée par défaut à 1
-      const quantityToDeduct = med.quantity ? parseFloat(med.quantity) : 1;
-
-      // Contrôle de rupture de stock : Bloquer la délivrance si quantité insuffisante
-      if (stockItem.quantity < quantityToDeduct) {
+      if (match.stockStatus === 'INSUFFICIENT_STOCK') {
         throw new InventoryException(
-          `Stock insuffisant pour "${stockItem.name}". Quantité disponible : ${stockItem.quantity}, requise : ${quantityToDeduct}.`,
+          `Stock insuffisant pour "${match.stockItem.name}". Quantité disponible : ${match.availableQuantity}, requise : ${match.requiredQuantity}.`,
           'INVENTORY_INSUFFICIENT_STOCK',
         );
       }
 
-      stockDeductions.push({ stockItem, quantityToDeduct });
+      stockDeductions.push({ stockItem: match.stockItem, quantityToDeduct: match.requiredQuantity });
     }
 
     // 2. Calcul du montant total de l'ordonnance et ventilation de la prise en charge
