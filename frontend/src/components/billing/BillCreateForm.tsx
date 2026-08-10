@@ -41,9 +41,8 @@ export const BillCreateForm: React.FC<BillCreateFormProps> = ({
 
   // Charger la liste des médecins au montage
   useEffect(() => {
-    apiFetch('/auth/users')
-      .then((users: any[]) => {
-        const docs = users.filter((u) => u.role === 'DOCTOR');
+    apiFetch('/auth/doctors')
+      .then((docs: any[]) => {
         setDoctors(docs);
         if (docs.length > 0) setSelectedDoctorId(docs[0].id);
         if (docs.length === 0) {

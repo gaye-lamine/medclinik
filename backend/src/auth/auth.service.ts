@@ -92,6 +92,14 @@ export class AuthService {
     });
   }
 
+  async findDoctors() {
+    return this.prisma.user.findMany({
+      where: { role: 'DOCTOR', isActive: true },
+      select: { id: true, name: true, role: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async deleteUser(id: string) {
     return this.prisma.user.delete({
       where: { id },

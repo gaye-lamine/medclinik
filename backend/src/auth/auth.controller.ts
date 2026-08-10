@@ -115,6 +115,16 @@ export class AuthController {
     return this.authService.findAllUsers();
   }
 
+  @Get('doctors')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.ADMIN, Role.CASHIER, Role.NURSE)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Lister les médecins actifs (pour sélection dans les formulaires)' })
+  @ApiResponse({ status: 200, description: 'Liste des médecins récupérée' })
+  async findDoctors() {
+    return this.authService.findDoctors();
+  }
+
   @Delete('users/:id')
   @UseGuards(JwtAuthGuard)
   @Roles(Role.ADMIN)
