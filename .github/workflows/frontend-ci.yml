@@ -1,4 +1,4 @@
-name: Frontend CI/CD (Next.js & Netlify)
+name: Frontend CI/CD (Next.js & Netlify) # trigger: 2FA removed, OTPModal cleaned
 
 on:
   push:
