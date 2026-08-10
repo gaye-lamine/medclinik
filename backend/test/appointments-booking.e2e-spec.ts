@@ -3,6 +3,7 @@ import { INestApplication, ConflictException, BadRequestException } from '@nestj
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AppointmentsService } from '../src/appointments/appointments.service';
+import cookieParser from 'cookie-parser';
 
 describe('Anti-Double-Booking Appointments (e2e)', () => {
   let app: INestApplication;
@@ -18,6 +19,7 @@ describe('Anti-Double-Booking Appointments (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.use(cookieParser());
     await app.init();
 
     prisma = app.get(PrismaService);
@@ -109,4 +111,3 @@ describe('Anti-Double-Booking Appointments (e2e)', () => {
     ).rejects.toThrow(BadRequestException);
   });
 });
-

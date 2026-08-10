@@ -5,6 +5,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { BillingStatus, Role } from '@prisma/client';
+import cookieParser from 'cookie-parser';
 
 describe('BillingService Integration Tests (e2e HTTP)', () => {
   let app: INestApplication;
@@ -24,6 +25,7 @@ describe('BillingService Integration Tests (e2e HTTP)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.use(cookieParser());
     await app.init();
 
     prisma = app.get(PrismaService);
@@ -96,7 +98,7 @@ describe('BillingService Integration Tests (e2e HTTP)', () => {
 
     const res = await request(app.getHttpServer())
       .post(`/billing/pay/${bill.id}`)
-      .set('Authorization', `Bearer ${cashierToken}`)
+      .set('Cookie', `access_token=${cashierToken}`)
       .send({
         paymentMethod: 'CASH',
         amountPaid: 10000,
@@ -126,7 +128,7 @@ describe('BillingService Integration Tests (e2e HTTP)', () => {
     // Premier paiement partiel HTTP de 4000
     const res1 = await request(app.getHttpServer())
       .post(`/billing/pay/${bill.id}`)
-      .set('Authorization', `Bearer ${cashierToken}`)
+      .set('Cookie', `access_token=${cashierToken}`)
       .send({
         paymentMethod: 'CASH',
         amountPaid: 4000,
@@ -139,7 +141,7 @@ describe('BillingService Integration Tests (e2e HTTP)', () => {
     // Second paiement partiel HTTP de 3000 -> total 7000
     const res2 = await request(app.getHttpServer())
       .post(`/billing/pay/${bill.id}`)
-      .set('Authorization', `Bearer ${cashierToken}`)
+      .set('Cookie', `access_token=${cashierToken}`)
       .send({
         paymentMethod: 'CASH',
         amountPaid: 3000,
@@ -164,7 +166,7 @@ describe('BillingService Integration Tests (e2e HTTP)', () => {
 
     await request(app.getHttpServer())
       .post(`/billing/pay/${bill.id}`)
-      .set('Authorization', `Bearer ${cashierToken}`)
+      .set('Cookie', `access_token=${cashierToken}`)
       .send({
         paymentMethod: 'CASH',
         amountPaid: 1000,
@@ -186,7 +188,7 @@ describe('BillingService Integration Tests (e2e HTTP)', () => {
 
     await request(app.getHttpServer())
       .post(`/billing/pay/${cancelledBill.id}`)
-      .set('Authorization', `Bearer ${cashierToken}`)
+      .set('Cookie', `access_token=${cashierToken}`)
       .send({
         paymentMethod: 'CASH',
         amountPaid: 5000,
@@ -206,7 +208,7 @@ describe('BillingService Integration Tests (e2e HTTP)', () => {
 
     await request(app.getHttpServer())
       .post(`/billing/pay/${refundedBill.id}`)
-      .set('Authorization', `Bearer ${cashierToken}`)
+      .set('Cookie', `access_token=${cashierToken}`)
       .send({
         paymentMethod: 'CASH',
         amountPaid: 5000,
@@ -230,11 +232,11 @@ describe('BillingService Integration Tests (e2e HTTP)', () => {
     await Promise.all([
       request(app.getHttpServer())
         .post(`/billing/pay/${bill.id}`)
-        .set('Authorization', `Bearer ${cashierToken}`)
+        .set('Cookie', `access_token=${cashierToken}`)
         .send({ paymentMethod: 'CASH', amountPaid: 5000 }),
       request(app.getHttpServer())
         .post(`/billing/pay/${bill.id}`)
-        .set('Authorization', `Bearer ${cashierToken}`)
+        .set('Cookie', `access_token=${cashierToken}`)
         .send({ paymentMethod: 'WAVE', amountPaid: 5000 }),
     ]);
 

@@ -1,5 +1,5 @@
-import { Controller, Post, Get, Delete, Param, Body, Req, UseGuards, UnauthorizedException } from '@nestjs/common';
-import type { Request } from 'express';
+import { Controller, Post, Get, Delete, Param, Body, Req, Res, UseGuards, UnauthorizedException, HttpCode } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
 import { Roles } from './roles.decorator.js';
@@ -10,47 +10,50 @@ import { RegisterDto } from './dto/register.dto.js';
 import { DemoLoginDto } from './dto/demo-login.dto.js';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 
-/** Extrait l'IP réelle du client, en tenant compte du proxy Traefik */
-function getClientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    return (Array.isArray(forwarded) ? forwarded[0] : forwarded).split(',')[0].trim();
-  }
-  return req.ip || req.socket?.remoteAddress || '0.0.0.0';
-}
-
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  private setAccessTokenCookie(response: Response, result: any) {
+    if (!result.accessToken) return result;
+
+    response.cookie('access_token', result.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 30 * 60 * 1000,
+      path: '/',
+    });
+    const { accessToken: _accessToken, ...body } = result;
+    return body;
+  }
+
   @Post('login')
-  @ApiOperation({ summary: 'Connexion de l\'utilisateur (génère l\'envoi OTP)' })
-  @ApiResponse({ status: 201, description: 'OTP envoyé au téléphone de l\'utilisateur, tempToken retourné' })
+  @ApiOperation({ summary: 'Connexion de l\'utilisateur' })
+  @ApiResponse({ status: 201, description: 'Cookie httpOnly posé, profil utilisateur retourné' })
   @ApiResponse({ status: 401, description: 'Identifiants incorrects' })
-  @ApiResponse({ status: 429, description: 'Quota SMS dépassé — réessayez plus tard' })
-  async login(@Body() body: LoginDto, @Req() req: Request) {
+  async login(@Body() body: LoginDto, @Res({ passthrough: true }) response: Response) {
     const user = await this.authService.validateUser(body.email, body.password);
     if (!user) {
       throw new UnauthorizedException('Identifiants de connexion invalides');
     }
-    return this.authService.login(user, getClientIp(req));
+    return this.setAccessTokenCookie(response, await this.authService.login(user));
   }
 
   @Post('verify-2fa')
   @ApiOperation({ summary: 'Vérifier le code OTP de la double authentification' })
   @ApiResponse({ status: 201, description: 'Jeton JWT final et profil utilisateur retournés' })
   @ApiResponse({ status: 401, description: 'Code OTP ou session invalide' })
-  async verify2fa(@Body() body: Verify2faDto) {
-    return this.authService.verifyOtp(body.tempToken, body.code);
+  async verify2fa(@Body() body: Verify2faDto, @Res({ passthrough: true }) response: Response) {
+    return this.setAccessTokenCookie(response, await this.authService.verifyOtp(body.tempToken, body.code));
   }
 
   @Post('demo-login')
   @ApiOperation({ summary: 'Connexion de démonstration rapide (désactivée en production)' })
-  @ApiResponse({ status: 201, description: 'Initialise la connexion démo avec OTP généré' })
+  @ApiResponse({ status: 201, description: 'Cookie httpOnly posé, profil démo retourné' })
   @ApiResponse({ status: 401, description: 'Mode démo désactivé' })
-  @ApiResponse({ status: 429, description: 'Quota SMS dépassé' })
-  async demoLogin(@Body() body: DemoLoginDto, @Req() req: Request) {
+  async demoLogin(@Body() body: DemoLoginDto, @Res({ passthrough: true }) response: Response) {
     const enableDemo = process.env.ENABLE_DEMO === 'true' || process.env.NODE_ENV !== 'production';
     if (!enableDemo) {
       throw new UnauthorizedException('Le mode démonstration rapide est désactivé');
@@ -68,7 +71,28 @@ export class AuthController {
     if (!user) {
       throw new UnauthorizedException('Utilisateur de démonstration introuvable');
     }
-    return this.authService.login(user, getClientIp(req));
+    return this.setAccessTokenCookie(response, await this.authService.login(user));
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Retourner le profil de la session courante' })
+  @ApiResponse({ status: 200, description: 'Profil de la session active' })
+  @ApiResponse({ status: 401, description: 'Session absente, invalide ou expirée' })
+  me(@Req() req: Request) {
+    const { sub: id, email, name, role } = req.user as any;
+    return { user: { id, email, name, role } };
+  }
+
+  @Post('logout')
+  @HttpCode(204)
+  logout(@Res({ passthrough: true }) response: Response) {
+    response.clearCookie('access_token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    });
   }
 
   @Post('register')

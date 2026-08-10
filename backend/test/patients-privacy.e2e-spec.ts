@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { PatientsService } from '../src/patients/patients.service';
+import cookieParser from 'cookie-parser';
 
 describe('Patients Privacy & Medical Secrecy Integration Tests (e2e)', () => {
   let app: INestApplication;
@@ -20,6 +21,7 @@ describe('Patients Privacy & Medical Secrecy Integration Tests (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.use(cookieParser());
     await app.init();
 
     prisma = app.get(PrismaService);

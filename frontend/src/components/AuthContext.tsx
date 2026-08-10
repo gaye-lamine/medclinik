@@ -69,7 +69,6 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   isLoading: boolean;
   error: string | null;
   showOtpModal: boolean;
@@ -77,7 +76,7 @@ interface AuthContextType {
   tempToken: string | null;
   phoneDigits: string;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   triggerRoleSwitch: (role: Role) => void;
   submitOtp: (code: string) => Promise<boolean>;
   cancelOtp: () => void;
@@ -94,7 +93,6 @@ const API_REST_URL = `${API_URL}/api`;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,13 +104,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initial load
   useEffect(() => {
-    const savedToken = localStorage.getItem('mc_token');
-    const savedUser = localStorage.getItem('mc_user');
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    const restoreSession = async () => {
+      try {
+        const response = await fetch(`${API_REST_URL}/auth/me`, { credentials: 'include' });
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch {
+        // Protected calls will surface a network error if the API is unavailable.
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void restoreSession();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -122,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -130,10 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await res.json();
-      if (data.accessToken) {
-        localStorage.setItem('mc_token', data.accessToken);
-        localStorage.setItem('mc_user', JSON.stringify(data.user));
-        setToken(data.accessToken);
+      if (data.user) {
         setUser(data.user);
         setShowOtpModal(false);
         if (typeof window !== 'undefined' && window.location.pathname !== '/') {
@@ -151,14 +154,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('mc_token');
-    localStorage.removeItem('mc_user');
-    setToken(null);
-    setUser(null);
-    setError(null);
-    if (typeof window !== 'undefined') {
-      window.location.href = '/';
+  const logout = async () => {
+    try {
+      await fetch(`${API_REST_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+    } finally {
+      setUser(null);
+      setError(null);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
     }
   };
 
@@ -169,6 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role }),
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -177,10 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await res.json();
-      if (data.accessToken) {
-        localStorage.setItem('mc_token', data.accessToken);
-        localStorage.setItem('mc_user', JSON.stringify(data.user));
-        setToken(data.accessToken);
+      if (data.user) {
         setUser(data.user);
         setShowOtpModal(false);
         if (typeof window !== 'undefined' && window.location.pathname !== '/') {
@@ -204,6 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempToken, code }),
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -212,9 +215,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await res.json();
-      localStorage.setItem('mc_token', data.accessToken);
-      localStorage.setItem('mc_user', JSON.stringify(data.user));
-      setToken(data.accessToken);
       setUser(data.user);
       
       setShowOtpModal(false);
@@ -239,14 +239,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const apiFetch = useCallback(async (path: string, options: RequestInit = {}) => {
     const headers = {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(!(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
       ...(options.headers || {}),
     };
 
     let res: Response;
     try {
-      res = await fetch(`${API_REST_URL}${path}`, { ...options, headers });
+      res = await fetch(`${API_REST_URL}${path}`, { ...options, headers, credentials: 'include' });
     } catch (networkError: unknown) {
       // Erreur réseau (serveur hors-ligne, CORS preflight bloqué, etc.)
       throw new Error(parseApiError(networkError, 'Impossible de joindre le serveur.'));
@@ -262,13 +261,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     return res.json().catch(() => ({}));
-  }, [token]);
+  }, []);
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
         isLoading,
         error,
         showOtpModal,

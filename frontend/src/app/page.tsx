@@ -20,7 +20,7 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
-  const { user, apiFetch, token, logout } = useAuth();
+  const { user, apiFetch, logout } = useAuth();
   const router = useRouter();
 
   const [data, setData] = useState<DashboardData | null>(null);
@@ -45,7 +45,7 @@ export default function Dashboard() {
   }, [apiFetch]);
 
   useEffect(() => {
-    if (!token || !user) return;
+    if (!user) return;
 
     if (user.role === 'ADMIN') {
       fetchDashboardData();
@@ -56,7 +56,7 @@ export default function Dashboard() {
     } else if (user.role === 'DOCTOR') {
       router.replace('/consultation');
     }
-  }, [token, user, fetchDashboardData, router]);
+  }, [user, fetchDashboardData, router]);
 
   // Si l'utilisateur n'est pas connecté, afficher la Landing Page publique
   if (!user) {

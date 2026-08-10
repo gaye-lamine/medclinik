@@ -19,7 +19,7 @@ import { PaymentModal } from '../../components/billing/PaymentModal';
 import { ReceiptPrinter } from '../../components/billing/ReceiptPrinter';
 
 export default function CaissePage() {
-  const { user, apiFetch, token } = useAuth();
+  const { user, apiFetch } = useAuth();
   const { toast } = useToast();
 
   // Instantiating services with DI
@@ -52,13 +52,13 @@ export default function CaissePage() {
 
   // Access validation and initial fetch
   useEffect(() => {
-    if (token && (user?.role === 'CASHIER' || user?.role === 'ADMIN')) {
+    if (user && (user.role === 'CASHIER' || user.role === 'ADMIN')) {
       fetchBills();
-    } else if (token) {
+    } else if (user) {
       setLoading(false);
       setError('Accès restreint. Seuls les caissiers ou administrateurs peuvent consulter la caisse financière.');
     }
-  }, [token, user?.role, fetchBills]);
+  }, [user, fetchBills]);
 
   // Real-time updates handler via WebSockets
   useEffect(() => {

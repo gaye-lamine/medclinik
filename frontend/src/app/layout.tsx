@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '../components/AuthContext';
 import { AppLayout } from '../components/AppLayout';
-import { OTPModal } from '../components/OTPModal';
 import { ToastProvider } from '../components/ToastContext';
 
 export const metadata: Metadata = {
@@ -23,7 +22,6 @@ export default function RootLayout({
             <AppLayout>
               {children}
             </AppLayout>
-            <OTPModal />
           </ToastProvider>
         </AuthProvider>
       </body>
