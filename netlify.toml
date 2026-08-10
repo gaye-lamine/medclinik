@@ -2,9 +2,6 @@
   base = "frontend"
   command = "npm run build"
   publish = "out"
-  # Disables Netlify's automatic continuous deployment on git push.
-  # Deployments are strictly triggered by GitHub Actions calling the Netlify Build Hook after Playwright E2E tests pass.
-  ignore = "exit 0"
 
 [[redirects]]
   from = "/*"
